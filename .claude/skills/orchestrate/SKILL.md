@@ -4,7 +4,7 @@ description: Give the plan, the work and the check of a task each to the cheapes
 ---
 # Orchestrate
 
-No rule here names a model: models change. Once per session, read the lineup at `https://platform.claude.com/docs/en/models/overview`: each model's ID, price and stated use. If the read fails, work alone.
+No rule here names a model: models change. Before each orchestration, read the lineup at `https://platform.claude.com/docs/en/models/overview`: each model's ID, price and stated use. If the read fails, work alone.
 
 1. **Size.** A task is hard if no written criteria can check its result, if it changes the system or anything public, or if it cannot be undone. The most capable model you can run plans and checks a hard task, as a subagent if it is not you.
 2. **Plan.** Write the brief to a file: the goal, the acceptance criteria, the files, and what not to touch; the delegate knows nothing else. Delegate only what the criteria check, never the person's decisions.
