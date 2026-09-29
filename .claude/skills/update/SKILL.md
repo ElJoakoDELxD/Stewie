@@ -1,6 +1,6 @@
 ---
 name: update
-description: Run only as the custodian. Bring this copy's template up to the canon's latest release, land a system fix an agent recorded, and propose to the canon what serves every copy, each by a pull request the person approves. Use when the session start says the copy is behind, when the person asks for an update, or when the person brings an agent's proposal.
+description: Run only as the custodian. Bring this copy's template up to the canon's latest release and land a system fix an agent recorded, each by a pull request the person approves; if the person wants, propose to the canon what serves every copy. Use when the session start says the copy is behind, when the person asks for an update, or when the person brings an agent's proposal.
 ---
 # Update
 
@@ -23,14 +23,14 @@ Every git call alone.
 
 ## Land a fix an agent recorded
 
-On a new branch from `main`, make the change the proposal describes, push the branch, and open a pull request; the person approves it by merging. If it would serve every copy, also propose it to the canon.
+On a new branch from `main`, make the change the proposal describes, push the branch, and open a pull request; the person approves it by merging. If it would serve every copy, offer to propose it to the canon.
 
 ## Propose a fix to the canon
 
-The canon accepts pull requests only from a fork of it. The fork is public, so nothing private goes in it.
+Only on the person's yes. The canon takes fixes as public issues in plain words, never code: nothing private goes in.
 
-1. Land the fix in this copy first (above).
-2. In the person's fork of the canon, on one branch for this copy, add one commit with the same change, and keep one pull request open to the canon.
-3. Record `pending/<short-name>.md` in this copy, by the same pull request as the fix: the canon pull request's link, the files, and the patch in a `diff` block.
+1. Land the fix here first (above).
+2. Write it: what failed, how it showed, and the change. Open it with a GitHub tool or `gh`; failing both, give the person `https://github.com/ElJoakoDELxD/Stewie/issues/new?title=<title>&body=<body>`, URL-encoded, which opens it written.
+3. Record `pending/<short-name>.md` in this copy, by the same pull request as the fix: the issue's link, the files, and the patch in a `diff` block.
 
-At each update, per record: **accepted** (merged and released): reverse the patch with `git apply -R`, take the canon's version, and delete the record. **Rejected:** ask the person whether to keep the change here or remove it, which is the same reversal. **Still open:** leave it.
+At each update, per record: **accepted** (issue completed, change released): reverse the patch with `git apply -R`, take the canon's version, and delete the record. **Rejected** (not planned): ask the person whether to keep the change here or remove it, which is the same reversal. **Still open:** leave it.

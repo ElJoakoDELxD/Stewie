@@ -13,4 +13,4 @@ Stewie's template changes only by release. The custodian curates it, and the per
 
 ## How to propose a change
 
-Fork the repository, make the change on a branch, and open a pull request. `bash tests/run.sh` runs every bench; CI runs them again, with the size ceilings and the version check. The custodian reviews it as a diff.
+Open an issue saying, in plain words, what failed, how it showed, and what you would change. The custodian writes the code. Issues are public: leave out anything private.
