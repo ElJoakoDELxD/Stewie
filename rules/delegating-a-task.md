@@ -1,5 +1,5 @@
 # Delegating a task
 
-Delegating pays only when a cheaper model gives the same result, and only some models may do it. The skill checks both, then plans in a written brief, delegates, and checks the result against the brief.
+The plan, the work and the check each go to the cheapest model that does them well, chosen from the current lineup and this agent's record, never from a name in a rule. The most capable model available plans and checks a hard task.
 
 The steps are in `.claude/skills/orchestrate/SKILL.md`.
