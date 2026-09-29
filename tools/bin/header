@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+source "$(dirname "$(readlink -f "$0")")/../../.claude/hooks/lib/chat.sh"
+
+root="$(stewie_root)"
+transcript="$(stewie_transcript)"
+stewie_identity "${root}" "${transcript}"
+
+if [[ "${1-}" == "--declare" ]]; then
+  kv="${2-}"
+  case "${kv}" in
+    agent=*)
+      name="${kv#agent=}"
+      [[ "${name}" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "header: an agent's name is lowercase letters, digits and hyphens; got '${name}'." >&2; exit 1; }
+      if [[ -n "${STEWIE_AGENT}" && "${STEWIE_AGENT}" != "${name}" ]]; then
+        echo "header: this chat already runs as '${STEWIE_AGENT}'. One chat, one agent: open a new chat for '${name}'." >&2
+        exit 1
+      fi
+      if [[ "$(stewie_attached "${root}")" != "${name}" ]]; then
+        echo "header: '${name}' is not attached at .agent/. Run 'attach ${name}' first, then read its agent file and memory index." >&2
+        exit 1
+      fi
+      chat="${root}/.agent/chats/${STEWIE_CHAT_ID}.md"
+      if [[ ! -f "${chat}" ]]; then
+        mkdir -p "$(dirname "${chat}")"
+        printf '# Chat %s\n\nAgent: %s. Started %s.\n' "${STEWIE_CHAT_ID}" "${name}" "$(date -u +%d-%m-%Y)" > "${chat}"
+      fi
+      printf 'STEWIE_DECLARED agent=%s chat=%s\n' "${name}" "${STEWIE_CHAT_ID}"
+      ;;
+    workplace=*)
+      place="${kv#workplace=}"
+      [[ -n "${STEWIE_AGENT}" ]] || { echo "header: declare the agent first." >&2; exit 1; }
+      [[ "${place}" =~ ^\.agent/projects/[A-Za-z0-9._/-]*$ && "${place}" != *..* ]] || { echo "header: a workplace is a folder under .agent/projects/; got '${place}'." >&2; exit 1; }
+      printf 'STEWIE_DECLARED workplace=%s chat=%s\n' "${place}" "${STEWIE_CHAT_ID}"
+      ;;
+    *) echo "header: expected agent=<name> or workplace=<folder>, got '${kv}'." >&2; exit 1 ;;
+  esac
+  exit 0
+fi
+
+IFS= read -r stamp || stamp=""
+if [[ -z "${stamp}" ]]; then echo "header: no time on stdin; run 'clock | header'." >&2; stamp="?"; fi
+
+branch="$(git -C "${root}" branch --show-current 2>/dev/null)"
+[[ -n "${branch}" ]] || { branch="?"; echo "header: no branch (detached HEAD or no git)." >&2; }
+agent="${STEWIE_AGENT:-no agent}"
+workplace="${STEWIE_WORKPLACE:-no workplace declared}"
+
+served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -c '
+import json, sys, time
+from datetime import datetime
+try:
+    r = json.loads(sys.stdin.read())
+except Exception:
+    print("none"); sys.exit()
+ts = r.get("timestamp", "")
+try:
+    age = time.time() - datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+except Exception:
+    age = None
+if age is None or age > 120:
+    print("stale " + (ts or "an unknown time")); sys.exit()
+effort = r.get("effort")
+if isinstance(effort, dict):
+    effort = effort.get("level")
+print("ok %s %s" % ((r.get("message") or {}).get("model") or "?", effort or "?"))
+' 2>/dev/null)"
+model="?"; effort="?"
+case "${served}" in
+  ok\ *) read -r _ model effort <<< "${served}" ;;
+  stale\ *) echo "header: the transcript's last reply is from ${served#stale }, not this turn; model and effort not used." >&2 ;;
+  *) echo "header: model and effort unreadable (no reply recorded in ${transcript})." >&2 ;;
+esac
+
+printf '[%s · %s · %s · %s · %s·%s]\n' "${stamp}" "${agent}" "${branch}" "${workplace}" "${model}" "${effort}"

@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Every bench
+        run: bash tests/run.sh
+
+      - name: Size ratchet
+        run: bash tests/sizes.sh
+
+      - name: Version check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          version() { sed -n 's/^## \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -1; }
+          here="$(version < CHANGELOG.md)"
+          base="$(git show "${BASE}:CHANGELOG.md" | version)"
+          echo "CHANGELOG.md: ${here} here, ${base} on the base."
+          git diff --quiet "${BASE}" HEAD && exit 0
+          if [ "${here}" = "${base}" ] || [ "$(printf '%s\n%s\n' "${base}" "${here}" | sort -V | tail -1)" != "${here}" ]; then
+            echo "::error::A change to the template needs a new version and a CHANGELOG.md line."
+            exit 1
+          fi
+
+      - name: Public files
+        run: |
+          for f in README.md LICENSE CHANGELOG.md CONTRIBUTING.md; do
+            [ -s "${f}" ] || { echo "::error::${f} is missing."; exit 1; }
+          done
+          if grep -n -E '(^|[^A-Za-z])git ' README.md; then
+            echo "::error::README.md asks the person to type a git command."; exit 1
+          fi
+
+      - name: Redundancy report
+        run: python3 tools/redundancy.py
+
+      - name: Privacy audit
+        env:
+          PATTERNS: ${{ secrets.PRIVACY_PATTERNS }}
+        run: |
+          if [ -z "${PATTERNS}" ]; then
+            echo "No PRIVACY_PATTERNS secret in this run (not set, or a fork's pull request): skipped."
+            exit 0
+          fi
+          printf '%s\n' "${PATTERNS}" > "${RUNNER_TEMP}/patterns"
+          if git grep -I -l -i -E -f "${RUNNER_TEMP}/patterns" -- .; then
+            echo "::error::A private term is in the files above."; exit 1
+          fi
+          echo "No private term found."

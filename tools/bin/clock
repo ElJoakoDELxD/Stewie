@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+root="${common%/.git}"; [[ -n "${common}" && "${root}" != "${common}" ]] || root="${CLAUDE_PROJECT_DIR:-$PWD}"
+record="${STEWIE_CLOCK_RECORD:-}"
+[[ -z "${record}" && -d "${root}/.agent/memory" ]] && record="${root}/.agent/memory/clock.tsv"
+threshold=180
+
+zone="${TS_ZONE:-}"
+if [[ -z "${zone}" && -f "${root}/.agent/agent.md" ]]; then
+  zone="$(sed -n 's/^[*_[:space:]-]*Timezone[*_]*:[*_[:space:]]*\([^[:space:]*_]*\).*/\1/p' "${root}/.agent/agent.md" | head -1)"
+fi
+[[ -z "${zone}" ]] && zone="${STEWIE_TZ:-}"
+[[ -z "${zone}" ]] && zone="UTC"
+
+signature="${STEWIE_CLOCK_SIGNATURE:-$(uname -s 2>/dev/null | cut -d- -f1)/${CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE:-local}}"
+
+method_date_tzdata() {
+  [[ "${zone}" == "UTC" || ( "${zone}" != *..* && -e "${TZDIR:-/usr/share/zoneinfo}/${zone}" ) ]] || return 1
+  TZ="${zone}" date '+%s|%d-%m-%Y %H:%M %z' 2>/dev/null
+}
+method_python_zoneinfo() {
+  command -v python3 >/dev/null 2>&1 || return 1
+  python3 - "${zone}" <<'PY' 2>/dev/null
+import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
+now = datetime.now(ZoneInfo(sys.argv[1]))
+print(f"{int(now.timestamp())}|{now.strftime('%d-%m-%Y %H:%M %z')}")
+PY
+}
+candidates=(date_tzdata python_zoneinfo)
+
+reference_epoch() {
+  if [[ -n "${STEWIE_CLOCK_REFERENCE_EPOCH:-}" ]]; then printf '%s' "${STEWIE_CLOCK_REFERENCE_EPOCH}"; return 0; fi
+  local d
+  d="$(curl -sSI --max-time 4 https://api.anthropic.com 2>/dev/null | awk -F': ' 'tolower($1)=="date"{print $2}' | tr -d '\r')"
+  [[ -n "${d}" ]] || return 1
+  date -u -d "${d}" +%s 2>/dev/null
+}
+
+run_method() { local out; out="$("method_$1")" || return 1; [[ "${out}" =~ ^[0-9]+\|[0-9]{2}-[0-9]{2}-[0-9]{4}\ [0-9]{2}:[0-9]{2}\ [+-][0-9]{4}$ ]] || return 1; printf '%s' "${out}"; }
+
+ref="$(reference_epoch)" || ref=""
+saved=""
+[[ -n "${record}" ]] && saved="$(awk -F'\t' -v s="${signature}" '$1==s{m=$2} END{print m}' "${record}" 2>/dev/null)"
+
+reading=""; used=""
+if [[ -n "${saved}" ]] && declare -F "method_${saved}" >/dev/null; then
+  reading="$(run_method "${saved}")" && used="${saved}"
+  [[ -z "${used}" ]] && echo "clock: the saved method '${saved}' failed here; testing the others." >&2
+fi
+if [[ -z "${used}" ]]; then
+  for m in "${candidates[@]}"; do
+    [[ "${m}" == "${saved}" ]] && continue
+    reading="$(run_method "${m}")" || continue
+    epoch="${reading%%|*}"
+    if [[ -n "${ref}" ]] && (( epoch - ref > threshold || ref - epoch > threshold )); then
+      echo "clock: method '${m}' read ${epoch}, reference ${ref}; not saved." >&2
+      continue
+    fi
+    used="${m}"
+    [[ -n "${record}" ]] || break
+    if [[ -n "${ref}" ]]; then evidence="read ${reading#*|}; reference $(date -u -d "@${ref}" '+%d-%m-%Y %H:%M:%S UTC'); delta $(( epoch - ref ))s"
+    else evidence="read ${reading#*|}; reference unreachable, not cross-checked"; fi
+    mkdir -p "$(dirname "${record}")"
+    printf '%s\t%s\t%s\t%s\n' "${signature}" "${m}" "$(date -u +%Y-%m-%d)" "${evidence}" >> "${record}"
+    echo "clock: new environment '${signature}'; method '${m}' tested and saved to ${record#"${root}"/}. Commit it with the memory." >&2
+    break
+  done
+fi
+
+if [[ -z "${used}" ]]; then
+  echo "clock: no method produced a time for zone '${zone}' in '${signature}'. No time printed; do not invent one." >&2
+  exit 1
+fi
+
+epoch="${reading%%|*}"
+stamp="$(printf '%s' "${reading#*|}" | sed -E 's/([+-][0-9]{2})([0-9]{2})$/\1:\2/; s/:00$//')"
+
+if [[ -z "${ref}" ]]; then
+  echo "clock: reference unreachable; the reading was not cross-checked." >&2
+elif (( epoch - ref > threshold || ref - epoch > threshold )); then
+  echo "DESFASE: the clock reads $(( epoch - ref ))s away from the reference. Ask the person whether the time is right before fixing anything." >&2
+fi
+if [[ -n "${TS_CTX_DATE:-}" ]]; then
+  own="$(TZ="${zone}" date -d "@${epoch}" +%Y-%m-%d 2>/dev/null || true)"
+  [[ -n "${own}" && "${own}" != "${TS_CTX_DATE}" ]] && echo "DESFASE: the context date is ${TS_CTX_DATE} and the clock's is ${own}. Ask the person before fixing anything." >&2
+fi
+
+printf '%s\n' "${stamp}"

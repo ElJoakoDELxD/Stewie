@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+source "$(dirname "$(readlink -f "$0")")/../../.claude/hooks/lib/chat.sh"
+root="$(stewie_root)"
+
+if [[ "${1-}" == "--list" ]]; then
+  stewie_timeout 20 git -C "${root}" ls-remote --heads origin 2>/dev/null \
+    | sed -n 's#.*refs/heads/agent/\(.*\)$#\1#p; s#.*refs/heads/\(custodian\)$#\1#p' | sort -u
+  exit "${PIPESTATUS[0]}"
+fi
+
+name="${1-}"
+[[ "${name}" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "attach: usage: attach <name>" >&2; exit 1; }
+branch="agent/${name}"; [[ "${name}" == "custodian" ]] && branch="custodian"
+
+have="$(stewie_attached "${root}")"
+if [[ -n "${have}" && "${have}" != "${name}" ]]; then
+  stewie_identity "${root}" "$(stewie_transcript)"
+  if [[ -n "${STEWIE_AGENT}" ]]; then
+    echo "attach: this chat runs as '${STEWIE_AGENT}'. One chat, one agent: open a new chat for '${name}'." >&2
+    exit 1
+  fi
+  if ! git -C "${root}" worktree remove "${root}/.agent" 2>/dev/null; then
+    echo "attach: .agent/ holds '${have}' with uncommitted work. Commit and push it from .agent/ first." >&2
+    exit 1
+  fi
+  have=""
+fi
+
+if [[ -z "${have}" ]]; then
+  if [[ -e "${root}/.agent" ]]; then
+    echo "attach: ${root}/.agent exists and is not an agent's worktree; move it aside first." >&2
+    exit 1
+  fi
+  stewie_timeout 60 git -C "${root}" fetch -q origin "+refs/heads/${branch}:refs/remotes/origin/${branch}" 2>/dev/null
+  if git -C "${root}" show-ref -q --verify "refs/heads/${branch}"; then
+    git -C "${root}" worktree add -q "${root}/.agent" "${branch}" || exit 1
+  elif git -C "${root}" show-ref -q --verify "refs/remotes/origin/${branch}"; then
+    git -C "${root}" worktree add -q --track -b "${branch}" "${root}/.agent" "origin/${branch}" || exit 1
+  else
+    echo "attach: no branch ${branch}, here or on origin. Create the agent with the onboard skill." >&2
+    exit 1
+  fi
+fi
+
+activate="${root}/.agent/tools/sandbox/activate.sh"
+[[ -f "${activate}" ]] && CLAUDE_PROJECT_DIR="${root}" bash "${activate}"
+if [[ -f "${root}/.claude/settings.local.json" ]] && grep -q '"sandbox"' "${root}/.claude/settings.local.json"; then
+  sandbox="the Bash sandbox is on"
+else
+  sandbox="the Bash sandbox is off here, so a Bash write does not pass through the permission hook"
+fi
+echo "Attached ${name} at .agent/ (branch ${branch}); ${sandbox}."

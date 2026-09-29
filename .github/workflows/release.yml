@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Every bench
+        run: bash tests/run.sh
+
+      - name: Tag and release the version CHANGELOG.md names
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="$(sed -n 's/^## \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' CHANGELOG.md | head -1)"
+          if git rev-parse -q --verify "refs/tags/v${v}" >/dev/null; then
+            echo "v${v} is already released."; exit 0
+          fi
+          awk -v v="${v}" 'index($0, "## " v) == 1 { f = 1; next } /^## / && f { exit } f' CHANGELOG.md > "${RUNNER_TEMP}/notes.md"
+          gh release create "v${v}" --target "${GITHUB_SHA}" --title "Stewie ${v}" --notes-file "${RUNNER_TEMP}/notes.md"

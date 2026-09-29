@@ -1,0 +1,5 @@
+# An agent's branch, attached as a worktree: never part of main
+.agent/
+# Written by the sandbox kit on each machine
+.claude/settings.local.json
+__pycache__/
