@@ -27,7 +27,7 @@ On a new branch from `main`, make the change the proposal describes, push the br
 
 ## Propose a fix to the canon
 
-Only on the person's yes. The canon takes fixes as public issues in plain words, never code: nothing private goes in.
+Only on the person's yes. The canon takes fixes as public issues: plain words, plus the solution's code if it helps. Nothing private goes in.
 
 1. Land the fix here first (above).
 2. Write it: what failed, how it showed, and the change. Open it with a GitHub tool or `gh`; failing both, give the person `https://github.com/ElJoakoDELxD/Stewie/issues/new?title=<title>&body=<body>`, URL-encoded, which opens it written.

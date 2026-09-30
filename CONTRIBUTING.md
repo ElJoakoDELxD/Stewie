@@ -13,4 +13,4 @@ Stewie's template changes only by release. The custodian curates it, and it merg
 
 ## How to propose a change
 
-Open an issue saying, in plain words, what failed, how it showed, and what you would change. The custodian writes the code. Issues are public: leave out anything private.
+Open an issue saying, in plain words, what failed, how it showed, and what you would change. You may add the solution's code, not whole files; the custodian reviews it and writes the change. Issues are public: leave out anything private.
