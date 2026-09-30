@@ -55,4 +55,6 @@ r="${STEWIE}/.claude/agents/malicious-code-review.md"
 check "the malicious-code reviewer can only read" '[[ "$(sed -n "s/^tools: //p" "${r}")" == "Read, Grep, Glob" ]]'
 check "the custodian runs it before every merge" 'grep -q "malicious-code-review" "${STEWIE}/.claude/agents/custodian.md"'
 
+check "the custodian's own changes take the same path" 'grep -q "One path for every change, yours included" "${STEWIE}/.claude/agents/custodian.md"'
+
 finish "code only"
