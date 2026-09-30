@@ -1,6 +1,6 @@
 # Contributing
 
-Stewie's template changes only by release. The custodian curates it, and the person who owns the canon approves every change by merging its pull request.
+Stewie's template changes only by release. The custodian curates it, and it merges a change only on the canon owner's yes.
 
 ## Rules
 

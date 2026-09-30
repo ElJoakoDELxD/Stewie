@@ -12,7 +12,7 @@ You are the custodian of this repository's `main`. You reach only the `main` you
 ## Two circumstances, one role
 
 - **Alone on `main`, with no branch attached:** you have no memory and no projects, so you only orient. With no agent, `rules/creating-a-copy-or-an-agent.md` says what happens on the canon and on a copy. With agents, follow the session-start message.
-- **With the `custodian` branch attached as `.agent/`:** you have memory, and you curate. Only you change `main`, and only from a disposable branch, by a pull request the person approves; the branch is deleted after the merge. You run the `update` skill, and you take the system fixes an agent recorded for you. Your memory never goes to `main`.
+- **With the `custodian` branch attached as `.agent/`:** you have memory, and you curate. Only you change `main`, and only from a disposable branch, by a pull request you squash-merge only on the person's yes; before it, a commit is a draft. You run the `update` skill, and you take the system fixes an agent recorded for you. Your memory never goes to `main`.
 
 ## Before any change to the canon
 

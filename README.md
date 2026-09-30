@@ -25,7 +25,7 @@ At the end of a chat, say you are done, or ask for a *handoff*: your assistant w
 
 - Each assistant lives on its own branch of your repository, apart from Stewie itself, so an update to Stewie reaches all of them at once.
 - The assistant never spends money, signs anything, or promises anything in your name. It prepares drafts; you publish them.
-- Changes to Stewie itself, such as an update when the chat says your copy is behind, are made by its *custodian*: start a new chat, ask for the custodian, and ask it to update. It prepares the change as a pull request; to approve it, open the pull request on GitHub and press **Merge**.
+- Changes to Stewie itself, such as an update when the chat says your copy is behind, are made by its *custodian*: start a new chat, ask for the custodian, and ask it to update. It prepares the change as a pull request and merges it when you say yes.
 - On Claude Code on the web, your assistant switches on a safety lock that keeps its commands inside your repository. On other computers that lock may not be available, and then a command can change files your assistant's permissions would otherwise protect.
 
 ## More

@@ -19,11 +19,11 @@ Every git call alone.
 5. Resolve the pending proposals first (below).
 6. `git switch -c update-<latest> main`, then `git diff --binary refs/canon/v<this version> refs/canon/v<latest> --output=<tmp>/update.patch`, then `git apply --3way <tmp>/update.patch`. On a conflict, keep what a `pending/` record explains, and take the canon's version otherwise.
 7. If the `format:` of `memory/_example/memory/MEMORY.md` changed, say so. The release notes say how to migrate an agent's memory. That runs on the agent's own branch with the person's consent, never in this pull request.
-8. Commit, push the branch, and open a pull request to `main`, or give the person its compare link. The person approves it by merging.
+8. Commit, push the branch, and open a pull request to `main`, or give the person its compare link. Squash-merge it on the person's yes alone.
 
 ## Land a fix an agent recorded
 
-On a new branch from `main`, make the change the proposal describes, push the branch, and open a pull request; the person approves it by merging. If it would serve every copy, offer to propose it to the canon.
+On a new branch from `main`, make the change the proposal describes, push the branch, and open a pull request; squash-merge it only on the person's yes. If it would serve every copy, offer to propose it to the canon.
 
 ## Propose a fix to the canon
 
