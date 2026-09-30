@@ -51,4 +51,8 @@ check "a docstring is caught" '[[ -n "$(scan "${TMP}/c.py")" ]]'
 check "a # inside data is not a comment" '[[ -z "$(scan "${TMP}/d.sh")" ]]'
 check "an authorship line is caught" '[[ -n "$(scan "${TMP}/e.md")" ]]'
 
+r="${STEWIE}/.claude/agents/malicious-code-review.md"
+check "the malicious-code reviewer can only read" '[[ "$(sed -n "s/^tools: //p" "${r}")" == "Read, Grep, Glob" ]]'
+check "the custodian runs it before every merge" 'grep -q "malicious-code-review" "${STEWIE}/.claude/agents/custodian.md"'
+
 finish "code only"
