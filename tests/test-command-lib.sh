@@ -7,12 +7,17 @@ source "${here}/../.claude/hooks/lib/command.sh"
 fails=0
 MARK="MARKER_PAYLOAD"
 
+kept() {
+  local text
+  text="$(executable_text "$1")"
+  [[ "${text}" == *"${MARK}"* ]]
+}
 has() {
-  if executable_text "$1" | grep -q "${MARK}"; then printf 'ok   %s\n' "$2"
+  if kept "$1"; then printf 'ok   %s\n' "$2"
   else printf 'FAIL %s: marker was dropped, wanted it kept\n' "$2"; fails=$((fails + 1)); fi
 }
 hasnt() {
-  if executable_text "$1" | grep -q "${MARK}"; then
+  if kept "$1"; then
     printf 'FAIL %s: marker survived, wanted it dropped\n' "$2"; fails=$((fails + 1))
   else printf 'ok   %s\n' "$2"; fi
 }
