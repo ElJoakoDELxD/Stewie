@@ -12,7 +12,7 @@ cmd="$(executable_text "${command}" | tr -d "\"'")"
 segments="$(command_segments "${cmd}")"
 
 pipes_to_shell=0
-grep -qE '(curl|wget).*\|[[:space:]]*(sudo([[:space:]]+-[^[:space:]]+)*[[:space:]]+)?((env|busybox)[[:space:]]+)?([^[:space:]|;&]*/)?(ba|z|k|da|a)?sh([[:space:];&|)]|$)' <<< "${cmd}" && pipes_to_shell=1
+grep -qE '(curl|wget).*\|[[:space:]]*(sudo([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+)?((env|busybox)[[:space:]]+)?([^[:space:]|;&]*/)?(ba|z|k|da|a)?sh([[:space:];&|)]|$)' <<< "${cmd//$'\n'/ }" && pipes_to_shell=1
 
 agent_dir='(~|\$HOME|/root|/home/[^/[:space:]]+)/\.(claude|codex|factory|config/opencode)(/|[[:space:]]|$)'
 
