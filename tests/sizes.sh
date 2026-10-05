@@ -3,7 +3,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 MAX_LOADED=3878
-MAX_WORDS=4808
+MAX_WORDS=4964
 
 tmp="$(mktemp -d)"; trap 'rm -rf "${tmp}"' EXIT
 canon="$(python3 -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])')"
@@ -18,7 +18,7 @@ hooks="$( { printf '%s' "${start}" | CLAUDE_PROJECT_DIR="${tmp}/canon" bash "${t
               STEWIE_CLOCK_REFERENCE_EPOCH="$(date -u +%s)" bash "${tmp}/canon/.claude/hooks/anchor.sh"; } 2>/dev/null)"
 loaded=$(( $(wc -c < CLAUDE.md) + $(printf '%s\n' "${hooks}" | wc -c) ))
 
-words="$(files | tr '\0' '\n' | grep -E '\.md$' | grep -vE '^(knowledge|docs)/|^CHANGELOG\.md$' | tr '\n' '\0' | xargs -0 cat | wc -w)"
+words="$(files | tr '\0' '\n' | grep -E '\.md$' | grep -vE '^CHANGELOG\.md$' | tr '\n' '\0' | xargs -0 cat | wc -w)"
 
 fail=0
 echo "loaded before the first turn: ${loaded} bytes (ceiling ${MAX_LOADED})"
