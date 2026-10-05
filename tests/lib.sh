@@ -40,7 +40,12 @@ fixture() {
   done
 }
 
-result() { printf '{"type":"user","message":{"content":[{"type":"tool_result","content":"%s\\n"}]}}\n' "$1"; }
+calls=0
+result() {
+  local kv="${1#* }" id; kv="${kv%% chat=*}"; calls=$((calls + 1)); id="toolu_b${calls}_${RANDOM}"
+  printf '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"%s","name":"Bash","input":{"command":"header --declare %s"}}]}}\n' "${id}" "${kv}"
+  printf '{"type":"user","message":{"content":[{"tool_use_id":"%s","type":"tool_result","content":"%s","is_error":false}]}}\n' "${id}" "$1"
+}
 
 hook() {
   local rc
