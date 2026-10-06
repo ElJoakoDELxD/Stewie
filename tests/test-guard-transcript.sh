@@ -85,6 +85,18 @@ check "pushd ~ after HOME is unknown"         '[[ $(run "read HOME <<< ~; pushd 
 check "cd -P ~ after HOME is unknown"         '[[ $(run "read HOME <<< ~; cd -P ~; cp /tmp/x .claude/projects/p/s.jsonl") == BLOCK ]]'
 check "tar -C ~ after HOME is unknown"        '[[ $(run "read HOME <<< ~; tar -C ~ -xf /tmp/a .claude/projects/p/s.jsonl") == BLOCK ]]'
 check "env -C ~ after HOME is unknown"        '[[ $(run "read HOME <<< ~; env -C ~ touch .claude/projects/p/s.jsonl") == BLOCK ]]'
+check "a cd inside a quoted substitution"     '[[ $(run "echo \"\$(cd ~; cp /tmp/x .claude/projects/p/s.jsonl)\"") == BLOCK ]]'
+check "a cd inside a quoted backtick"         '[[ $(run "echo \"\`cd ~; cp /tmp/x .claude/projects/p/s.jsonl\`\"") == BLOCK ]]'
+HASH="$(printf 'echo "$(echo x # )\ncp /tmp/x $HOME/.claude/projects/p/s.jsonl\n)"')"
+CASE="$(printf 'echo "$(case x in y) ;; esac\ncp /tmp/x $HOME/.claude/projects/p/s.jsonl\n)"')"
+HERE="$(printf 'echo "$(cat <<E\n)\nE\ncp /tmp/x $HOME/.claude/projects/p/s.jsonl\n)"')"
+check "a ) in a comment does not close \$("    '[[ $(run "${HASH}") == BLOCK ]]'
+check "a ) in a case pattern does not close"  '[[ $(run "${CASE}") == BLOCK ]]'
+check "a ) in a heredoc does not close"       '[[ $(run "${HERE}") == BLOCK ]]'
+BRACE="$(printf 'cd ~; echo "$(echo ${x%%)}\ncp /tmp/x .claude/projects/p/s.jsonl\n)"')"
+TICK="$(printf 'cd ~; echo "`echo \\`true\\`\ncp /tmp/x .claude/projects/p/s.jsonl\n`"')"
+check "a ) in \${…} does not close \$("        '[[ $(run "${BRACE}") == BLOCK ]]'
+check "an escaped backtick does not close"    '[[ $(run "${TICK}") == BLOCK ]]'
 check "a command substitution is blocked"     '[[ $(run "echo \$(touch ${P})") == BLOCK ]]'
 check "a backtick substitution is blocked"    '[[ $(run "cat \`touch ${P}\`") == BLOCK ]]'
 
@@ -125,7 +137,10 @@ check "grep for a quoted > passes"            '[[ $(run "grep -c \">\" ${T}") ==
 check "a read that silences stderr passes"    '[[ $(run "grep -l x ~/.claude/projects/*/*.jsonl 2>/dev/null | head -3") == PASS ]]'
 check "a read that merges stderr passes"      '[[ $(run "cat ${T} 2>&1 | wc -l") == PASS ]]'
 check "a read that sends stdout to stderr passes" '[[ $(run "ls ~/.claude/projects >&2") == PASS ]]'
-check "find without actions passes"          '[[ $(run "find ~/.claude/projects -name \"*.jsonl\"") == PASS ]]'
+check "a quoted | in a grep pattern passes"   '[[ $(run "grep -cE \"tool_use|tool_result\" ${T}") == PASS ]]'
+check "a quoted ; or & in a pattern passes"   '[[ $(run "grep -c \"a;b&c\" ${T}") == PASS ]]'
+check "a quoted | does not hide a writer"     '[[ $(run "grep \"a|b\" ${T} | tee ${T}") == BLOCK ]]'
+check "find without actions passes"         '[[ $(run "find ~/.claude/projects -name \"*.jsonl\"") == PASS ]]'
 check "Write elsewhere passes"                '[[ $(write_to Write "${TMP}/notes.md") == PASS ]]'
 check "a redirect elsewhere passes"           '[[ $(run "echo ok > ${TMP}/out.txt") == PASS ]]'
 check "python away from the config passes"    '[[ $(run "python3 -c \"print(1)\"") == PASS ]]'

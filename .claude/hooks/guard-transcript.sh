@@ -33,34 +33,63 @@ config="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${CL
 text="" literal=""
 eval "$(python3 -c '
 import codecs, shlex, sys
-src = sys.argv[1]
-def glue(t): return t.replace(" ", "\x01").replace("\t", "\x01")
-text, literal, i, n = [], [], 0, len(src)
-while i < n:
-    c = src[i]
-    if src.startswith("\\\n", i):
-        i += 2
-    elif c == "\\" and i + 1 < n:
-        text.append(glue(src[i + 1])); literal.append(src[i + 1]); i += 2
-    elif src.startswith("$\x27", i):
-        j = i + 2
-        while j < n and src[j] != "\x27": j += 2 if src[j] == "\\" else 1
-        try: text.append(glue(codecs.decode(src[i + 2:j], "unicode_escape")))
-        except Exception: text.append(glue(src[i + 2:j]))
-        i = j + 1
-    elif c == "\x27":
-        j = src.find("\x27", i + 1); j = n if j < 0 else j
-        text.append(glue(src[i + 1:j])); i = j + 1
-    elif c == "\"":
-        j = i + 1
-        while j < n and src[j] != "\"":
-            if src.startswith("\\\n", j): j += 2; continue
-            if src[j] == "\\" and j + 1 < n and src[j + 1] in "$`\"\\": j += 1
-            text.append(glue(src[j])); j += 1
-        i = j + 1
-    else:
-        text.append(c); literal.append(c); i += 1
-print("text=%s literal=%s" % (shlex.quote("".join(text)), shlex.quote("".join(literal))))
+def glue(t): return t.replace(" ", "\x01").replace("\t", "\x01").replace("|", "\x02").replace(";", "\x03").replace("&", "\x04")
+def close(src, j):
+    depth, k, n = 1, j + 2, len(src)
+    while k < n:
+        c = src[k]
+        if c == "\\": k += 2; continue
+        if c == "\x27":
+            k = src.find("\x27", k + 1); k = n if k < 0 else k + 1; continue
+        if c == "\"":
+            k += 1
+            while k < n and src[k] != "\"": k += 2 if src[k] == "\\" else 1
+            k += 1; continue
+        if c == "#" or src.startswith("<<", k) or src.startswith("${", k): return n
+        if src.startswith("case", k) and (k == j + 2 or src[k - 1] in " \t\n;(|&") and src[k + 4:k + 5] in (" ", "\t", "\n"): return n
+        if c == "(": depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0: return k
+        k += 1
+    return n
+def tok(src):
+    text, literal, i, n = [], [], 0, len(src)
+    while i < n:
+        c = src[i]
+        if src.startswith("\\\n", i):
+            i += 2
+        elif c == "\\" and i + 1 < n:
+            text.append(glue(src[i + 1])); literal.append(src[i + 1]); i += 2
+        elif src.startswith("$\x27", i):
+            j = i + 2
+            while j < n and src[j] != "\x27": j += 2 if src[j] == "\\" else 1
+            try: text.append(glue(codecs.decode(src[i + 2:j], "unicode_escape")))
+            except Exception: text.append(glue(src[i + 2:j]))
+            i = j + 1
+        elif c == "\x27":
+            j = src.find("\x27", i + 1); j = n if j < 0 else j
+            text.append(glue(src[i + 1:j])); i = j + 1
+        elif c == "\"":
+            j = i + 1
+            while j < n and src[j] != "\"":
+                if src.startswith("\\\n", j): j += 2; continue
+                if src.startswith("$(", j):
+                    k = close(src, j)
+                    text.append("$(" + tok(src[j + 2:k])[0] + ")"); j = k + 1; continue
+                if src[j] == "`":
+                    k = j + 1
+                    while k < n and src[k] != "`": k += 2 if src[k] == "\\" else 1
+                    k = min(k, n)
+                    text.append("`" + tok(src[j + 1:k])[0] + "`"); j = k + 1; continue
+                if src[j] == "\\" and j + 1 < n and src[j + 1] in "$`\"\\": j += 1
+                text.append(glue(src[j])); j += 1
+            i = j + 1
+        else:
+            text.append(c); literal.append(c); i += 1
+    return "".join(text), "".join(literal)
+text, literal = tok(sys.argv[1])
+print("text=%s literal=%s" % (shlex.quote(text), shlex.quote(literal)))
 ' "${command}")"
 zone="$(command_segments "${text}" | python3 -c '
 import os, re, sys
@@ -89,7 +118,8 @@ for tail in re.findall(r"[)`]([^\s;|&)`]+)", segs):
     if name in tail or re.search(r"[*?\[{$]", tail): found()
 bases, unknown, lost = [], False, False
 for seg in segs.split("\n"):
-    words = [w.replace("\x01", " ") for w in seg.split()]
+    words = [w.replace("\x01", " ").replace("\x02", "|").replace("\x03", ";").replace("\x04", "&") for w in seg.split()]
+    pieces = [x for w in words if re.search(r"[\s|;&]", w) for x in re.split(r"[\s|;&]+", w) if x]
     first = words[0].lstrip("({!") if words else ""
     bare = bool(words) and words[0] == "cd" and (len(words) == 1 or (len(words) == 2 and not words[1].startswith("-")))
     if first in ("cd", "pushd", "popd", "builtin", "command") and not bare: lost = unknown = True
@@ -117,16 +147,16 @@ for seg in segs.split("\n"):
         if under(cwd): found()
         if "*" in cwd: unknown = True
         known["PWD"] = "*" if lost else cwd
-    flat = [x for w in words for x in re.split(r"[=(),:<>]", tilde(ev(w))) if x]
+    flat = [x for w in words + pieces for x in re.split(r"[=(),:<>]", tilde(ev(w))) if x]
     bases += [b for b in {resolve(x, cwd) for x in flat if not re.search(r"[*?\[{]", x)} if above(b) and b not in bases]
     for x in flat:
         if not x.startswith(("/", "~", "-", "*")) and any(under(resolve(x, b)) for b in bases): found()
-    for w in words:
+    for w in words + pieces:
         w = tilde(ev(w))
         if w.startswith("*") and name in w: found()
         parts = [x for x in re.split(r"[=(),:<>]", w) if x]
         for x in parts:
-            for i in (x.find("/"), x.find("~")):
+            for i in [m.start() for m in re.finditer(r"[/~]", x)]:
                 if i > 0 and under(resolve(re.split(r"[*?\[{]", x[i:])[0], cwd)): found()
         for part in parts:
             m = re.search(r"[*?\[{]", part)
