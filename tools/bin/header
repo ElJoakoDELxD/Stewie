@@ -46,6 +46,8 @@ branch="$(git -C "${root}" branch --show-current 2>/dev/null)"
 [[ -n "${branch}" ]] || { branch="?"; echo "header: no branch (detached HEAD or no git)." >&2; }
 agent="${STEWIE_AGENT:-no agent}"
 workplace="${STEWIE_WORKPLACE:-no workplace declared}"
+sandbox="sandbox off"
+[[ -d "${root}/.claude/hooks" && ! -w "${root}/.claude/hooks" ]] && sandbox="sandbox on"
 
 served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -c '
 import json, sys, time
@@ -73,4 +75,4 @@ case "${served}" in
   *) echo "header: model and effort unreadable (no reply recorded in ${transcript})." >&2 ;;
 esac
 
-printf '[%s · %s · %s · %s · %s·%s]\n' "${stamp}" "${agent}" "${branch}" "${workplace}" "${model}" "${effort}"
+printf '[%s · %s · %s · %s · %s · %s·%s]\n' "${stamp}" "${agent}" "${branch}" "${workplace}" "${sandbox}" "${model}" "${effort}"

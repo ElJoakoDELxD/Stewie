@@ -33,7 +33,7 @@ cd "${TMP}/p"
 tr="${TMP}/t.jsonl"; : > "${tr}"
 export STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a
 h="$(echo "01-02-2026 03:04 +00" | "${bin}/header" 2>/dev/null)"
-check "five fields, nothing declared" '[[ "${h}" == "[01-02-2026 03:04 +00 · no agent · main · no workplace declared · ?·?]" ]]'
+check "six fields, nothing declared" '[[ "${h}" == "[01-02-2026 03:04 +00 · no agent · main · no workplace declared · sandbox off · ?·?]" ]]'
 check "never the check mark" '[[ "${h}" != *✓* ]]'
 
 reply() { printf '{"type":"assistant","message":{"model":"m-test","content":[{"type":"text","text":"say \\"model\\":\\"m-quoted\\""}]},"effort":"xhigh","timestamp":"%s"}\n' "$1"; }
@@ -49,7 +49,7 @@ d="$("${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
 check "a declaration prints its record" '[[ "${d}" == "${MARK} agent=scout chat=chat-a" ]]'
 check "and starts this chat's own file" '[[ -f .agent/chats/chat-a.md ]]'
 h="$(echo "t" | "${bin}/header" 2>/dev/null)"
-check "the declared agent shows" '[[ "${h}" == "[t · scout · main · no workplace declared · "* ]]'
+check "the declared agent shows" '[[ "${h}" == "[t · scout · main · no workplace declared · sandbox off · "* ]]'
 check "a second agent is refused" '! "${bin}/header" --declare agent=other 2>"${TMP}/err7" && grep -q "One chat, one agent: open a new chat" "${TMP}/err7"'
 check "an agent not attached is refused" '! STEWIE_CHAT=chat-z STEWIE_TRANSCRIPT=/dev/null "${bin}/header" --declare agent=nobody 2>/dev/null'
 d="$("${bin}/header" --declare workplace=.agent/projects/garden/ 2>&1)"; result "${d}" >> "${tr}"
