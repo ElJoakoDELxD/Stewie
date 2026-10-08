@@ -47,6 +47,15 @@ result() {
   printf '{"type":"user","message":{"content":[{"tool_use_id":"%s","type":"tool_result","content":"%s","is_error":false}]}}\n' "${id}" "$1"
 }
 
+locked() {
+  local repo="$1" rc bw; shift
+  if [[ $(id -u) -ne 0 ]]; then
+    chmod a-w "${repo}/.claude/hooks"; "$@"; rc=$?; chmod u+w "${repo}/.claude/hooks"; return "${rc}"
+  fi
+  bw="$(command -v bwrap || printf '%s' "${STEWIE}/memory/_example/tools/sandbox/linux-x86_64/bwrap")"
+  "${bw}" --dev-bind / / --ro-bind "${repo}/.claude/hooks" "${repo}/.claude/hooks" "$@"
+}
+
 hook() {
   local rc
   printf '%s' "$2" | bash "$1" >/dev/null 2>"${TMP}/hook.err"; rc=$?

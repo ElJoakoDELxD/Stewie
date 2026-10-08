@@ -12,7 +12,7 @@ run() { hook "${H}" "$(payload "$@")"; }
 echo "=== before a declaration: the control ==="
 check "Write anywhere passes" '[[ $(run Write "${P}" "${tr}" file_path=README.md) == PASS ]]'
 
-d="$(STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a "${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
+d="$(locked "${P}" env STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a "${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
 check "the declaration is accepted" '[[ "${d}" == "${MARK} agent=scout chat=chat-a" ]]'
 check "a second declaration is refused" '! STEWIE_TRANSCRIPT="${tr}" "${bin}/header" --declare agent=other 2>/dev/null'
 
@@ -57,7 +57,7 @@ C="${TMP}/c"
 git -C "${C}" worktree add -q --orphan -b custodian "${C}/.agent" 2>/dev/null
 git -C "${C}/.agent" commit -q --allow-empty -m seed
 tc="${TMP}/c.jsonl"; : > "${tc}"
-d="$(cd "${C}" && STEWIE_TRANSCRIPT="${tc}" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=custodian 2>&1)"; result "${d}" >> "${tc}"
+d="$(cd "${C}" && locked "${C}" env STEWIE_TRANSCRIPT="${tc}" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=custodian 2>&1)"; result "${d}" >> "${tc}"
 check "the custodian is declared"          '[[ "${d}" == "${MARK} agent=custodian chat=chat-c" ]]'
 check "it writes the template"             '[[ $(run Write "${C}" "${tc}" file_path=README.md) == PASS ]]'
 check "never its own role file"            '[[ $(run Edit "${C}" "${tc}" file_path=.claude/agents/custodian.md) == BLOCK ]]'

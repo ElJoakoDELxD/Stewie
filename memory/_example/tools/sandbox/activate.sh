@@ -3,10 +3,15 @@
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)/linux-x86_64"
 bin="${STEWIE_SANDBOX_BIN:-/usr/local/bin}"
-[[ "$(uname -s)/$(uname -m)" == "Linux/x86_64" && -x "${here}/bwrap" && -w "${bin}" ]] || exit 0
-
-ln -sf "${here}/bwrap" "${bin}/bwrap"
-ln -sf "${here}/socat" "${bin}/socat"
+case "$(uname -s)/$(uname -m)" in
+  Darwin/*) ;;
+  Linux/x86_64)
+    [[ -x "${here}/bwrap" && -w "${bin}" ]] || exit 0
+    ln -sf "${here}/bwrap" "${bin}/bwrap"
+    ln -sf "${here}/socat" "${bin}/socat"
+    ;;
+  *) exit 0 ;;
+esac
 
 project="${CLAUDE_PROJECT_DIR:-$PWD}"
 mkdir -p "${project}/.claude"

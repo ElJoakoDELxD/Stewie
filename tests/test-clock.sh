@@ -45,7 +45,13 @@ reply "$(date -u -d '-10 min' +%Y-%m-%dT%H:%M:%S.000Z)" > "${TMP}/stale.jsonl"
 h="$(echo "t" | STEWIE_TRANSCRIPT="${TMP}/stale.jsonl" "${bin}/header" 2>"${TMP}/err6")"
 check "an earlier turn is never used" '[[ "${h}" == *"· ?·?]" ]] && grep -q "not this turn" "${TMP}/err6"'
 
-d="$("${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
+check "with the sandbox off, no agent is declared" '! "${bin}/header" --declare agent=scout 2>"${TMP}/err8" && grep -q "only with the Bash sandbox on" "${TMP}/err8"'
+mv "${TMP}/p/.claude/hooks" "${TMP}/hooks.real"; mkdir -p "${TMP}/ro/.claude/hooks"; ln -s "${TMP}/ro/.claude/hooks" "${TMP}/p/.claude/hooks"
+check "a hooks folder linked to a read-only one is not the sandbox" '! locked "${TMP}/ro" "${bin}/header" --declare agent=scout 2>/dev/null'
+rm "${TMP}/p/.claude/hooks"; mv "${TMP}/hooks.real" "${TMP}/p/.claude/hooks"
+h="$(echo "t" | locked "${TMP}/p" "${bin}/header" 2>/dev/null)"
+check "with the hooks read-only, the header says so" '[[ "${h}" == *" · sandbox on · "* ]]'
+d="$(locked "${TMP}/p" "${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
 check "a declaration prints its record" '[[ "${d}" == "${MARK} agent=scout chat=chat-a" ]]'
 check "and starts this chat's own file" '[[ -f .agent/chats/chat-a.md ]]'
 h="$(echo "t" | "${bin}/header" 2>/dev/null)"

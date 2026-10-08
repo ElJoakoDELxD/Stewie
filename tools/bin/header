@@ -21,6 +21,10 @@ if [[ "${1-}" == "--declare" ]]; then
         echo "header: '${name}' is not attached at .agent/. Run 'attach ${name}' first, then read its agent file and memory index." >&2
         exit 1
       fi
+      if ! stewie_sandboxed "${root}"; then
+        echo "header: an agent works only with the Bash sandbox on, and it is off in this chat. 'attach ${name}' turns it on where this machine allows; then declare again. Without it, work as plain Claude Code, with no agent." >&2
+        exit 1
+      fi
       chat="${root}/.agent/chats/${STEWIE_CHAT_ID}.md"
       if [[ ! -f "${chat}" ]]; then
         mkdir -p "$(dirname "${chat}")"
@@ -47,7 +51,7 @@ branch="$(git -C "${root}" branch --show-current 2>/dev/null)"
 agent="${STEWIE_AGENT:-no agent}"
 workplace="${STEWIE_WORKPLACE:-no workplace declared}"
 sandbox="sandbox off"
-[[ -d "${root}/.claude/hooks" && ! -w "${root}/.claude/hooks" ]] && sandbox="sandbox on"
+stewie_sandboxed "${root}" && sandbox="sandbox on"
 
 served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -c '
 import json, sys, time

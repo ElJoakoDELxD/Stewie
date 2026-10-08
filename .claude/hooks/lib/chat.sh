@@ -28,6 +28,10 @@ stewie_attached() {
   esac
 }
 
+stewie_sandboxed() {
+  [[ ! -L "$1/.claude" && ! -L "$1/.claude/hooks" && -d "$1/.claude/hooks" && ! -w "$1/.claude/hooks" ]]
+}
+
 stewie_agent_file() {
   if [[ "$2" == "custodian" ]]; then printf '%s/.claude/agents/custodian.md' "$1"
   else printf '%s/.agent/agent.md' "$1"; fi
