@@ -38,7 +38,7 @@ stewie_agent_file() {
 }
 
 stewie_declarations() {
-  python3 - "$1" <<'PY' 2>/dev/null
+  python3 -I - "$1" <<'PY' 2>/dev/null
 import json, re, sys
 call = re.compile(r"header --declare (agent=[a-z0-9][a-z0-9-]*|workplace=[A-Za-z0-9._/-]+)")
 mark = re.compile(r"STEWIE_DECLARED (agent|workplace)=([A-Za-z0-9._/-]+) chat=([A-Za-z0-9_-]+)")

@@ -62,7 +62,7 @@ hook() {
   if [[ ${rc} -eq 2 ]]; then echo BLOCK; else echo PASS; fi
 }
 payload() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import json, sys
 tool, cwd, transcript, *kv = sys.argv[1:]
 ti = dict(x.split("=", 1) for x in kv)

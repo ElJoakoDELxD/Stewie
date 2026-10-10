@@ -26,7 +26,7 @@ Then, with every git call alone:
 3. `cp -R memory/_example/. .agent/ && cp .claude/agents/_example.md .agent/agent.md`
 4. Fill `.agent/agent.md`: `name: <name>`, a one-line `description`, and the body from the answers. Keep the default effects.
 5. `attach <name>`, which turns the Bash sandbox on, then `header --declare agent=<name>`, which starts this chat's memory file.
-6. `cd .agent`, then `git add -A`, then `git commit -m "<name>: first chat"`, then `git push -u origin agent/<name>`.
+6. `git -C .agent add -A`, then `git -C .agent commit -m "<name>: first chat"`, then `git -C .agent push -u origin agent/<name>`, each alone.
 
 Nothing is written to `main`. Tell the person, in one or two lines, that every new chat starts with this agent, or offers a choice once there are several.
 

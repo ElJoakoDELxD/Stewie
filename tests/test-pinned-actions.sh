@@ -3,7 +3,7 @@
 source "$(dirname "$0")/lib.sh"
 
 unpinned() {
-  python3 - "$1" <<'PY'
+  python3 -I - "$1" <<'PY'
 import pathlib, re, sys
 root = pathlib.Path(sys.argv[1])
 key = re.compile(r'(^|[\s{,-])["\']?uses["\']?\s*:')

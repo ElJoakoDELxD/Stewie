@@ -6,7 +6,7 @@ MAX_LOADED=3878
 MAX_WORDS=4964
 
 tmp="$(mktemp -d)"; trap 'rm -rf "${tmp}"' EXIT
-canon="$(python3 -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])')"
+canon="$(python3 -I -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])')"
 files() { git ls-files -z -co --exclude-standard; }
 
 git init -q -b main "${tmp}/canon"

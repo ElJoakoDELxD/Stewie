@@ -3,7 +3,7 @@
 source "$(dirname "$0")/lib.sh"
 
 scan() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import ast, re, sys, pathlib
 TRAIL = re.compile(r"^.*?\S\s+#\s[^'\"]*$")
 LEAK = re.compile("|".join(["co-" + "authored-by:", "claude-" + "session:", r"claude\.ai/code/" + "session"]), re.I)
@@ -12,7 +12,10 @@ for p in sys.argv[1:]:
     f = pathlib.Path(p)
     try:
         text = f.read_text()
-    except (UnicodeDecodeError, IsADirectoryError):
+    except (IsADirectoryError, FileNotFoundError):
+        continue
+    except (UnicodeDecodeError, PermissionError):
+        print(f"{p}: skipped, not readable as text", file=sys.stderr)
         continue
     lines = text.split("\n")
     if LEAK.search(text):
@@ -36,9 +39,9 @@ PY
 
 files=()
 while IFS= read -r -d '' f; do files+=("${STEWIE}/${f}"); done < <(git -C "${STEWIE}" ls-files -z -co --exclude-standard)
-found="$(scan "${files[@]}")"
+found="$(scan "${files[@]}")"; scanned=$?
 [[ -n "${found}" ]] && printf '%s\n' "${found}"
-check "the code holds only code, and no file carries authorship lines" '[[ -z "${found}" ]]'
+check "the code holds only code, and no file carries authorship lines" '[[ -z "${found}" && ${scanned} -eq 0 ]]'
 
 printf '#!/usr/bin/env bash\n# a comment\necho "${#x} # data"\n' > "${TMP}/a.sh"
 printf 'x=1  # trailing\n' > "${TMP}/b.sh"

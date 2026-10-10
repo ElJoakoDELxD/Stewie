@@ -32,6 +32,12 @@
         ]
       },
       {
+        "matcher": "^(Bash|mcp__.+)$",
+        "hooks": [
+          { "type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lib/approved.py", "timeout": 20, "onFailure": "block" }
+        ]
+      },
+      {
         "matcher": "Bash|Read|Write|Edit|MultiEdit|NotebookEdit|Agent",
         "hooks": [
           { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/recall.sh", "timeout": 5 }

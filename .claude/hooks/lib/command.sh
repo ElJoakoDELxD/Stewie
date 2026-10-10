@@ -4,14 +4,14 @@ hook_command() {
   local input
   input="$(cat)"
   printf '%s' "${input}" \
-    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("tool_input", {}).get("command", ""))' \
+    | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("tool_input", {}).get("command", ""))' \
     2>/dev/null || printf ''
 }
 
 _STEWIE_INTERPRETERS='sh|bash|zsh|ksh|dash|ash|busybox|python|python2|python3|node|deno|bun|perl|ruby|php|eval|source|exec|xargs|env|command'
 
 executable_text() {
-  printf '%s\n' "$1" | python3 -c '
+  printf '%s\n' "$1" | python3 -I -c '
 import re, sys
 
 INTERP = re.compile(r"(^|[|&;(\s])(" + sys.argv[1] + r")([\s|;&)]|$)")

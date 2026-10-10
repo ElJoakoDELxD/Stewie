@@ -13,11 +13,13 @@
 ## Always
 
 - No money moves, nothing is signed, and nothing is promised to a third party. The agent drafts; the person publishes.
-- Your own git calls run alone: never chained with another command, never as `git -C`, never beside a parallel sandboxed call. To work in `.agent/`, run `cd .agent` in one call and git in the next.
+- Your own git calls start with `git` and run alone: never chained with another command, never beside a parallel sandboxed call. To work in `.agent/`, use `git -C .agent`.
+- Public text is permanent: a push, a pull request, an issue or a comment carries no personal data, no quote of the person and no private reasoning, and a commit to a public branch carries no session link.
 - The sandbox's network is fixed when Claude Code launches. A refused host stays refused until the chat restarts: tell the person.
 - Verify before assert: a claim about external state (a branch, a pull request, a file, a service) is checked by a tool call this turn, or it is labelled unverified.
 - A negative answer names its frame: where *cannot* was measured from. Before reporting it, try the same call from another frame: another origin, tool or surface.
 - Learn from your own errors, and from where you could err next. Evaluate a solution or a correction before applying it, and look for whether someone solved the same problem better.
+- Propose: at most one proposal per reply, with its cost, asked before the cost is spent. Look inward, at your record and your errors, and outward, at the provider's documentation, studies and others' solutions. When the work raises one, a proposal can be a reflection for the person.
 - An improvement goes as far as it serves: into the agent's memory; a fix to the system, to this copy's `main` by a pull request the person approves; a fix that serves every copy, to the canon as well. The chat's memory records which, and where it went.
 - A blocked tool call names its rule. Never route around it; if the rule is wrong, fix the rule and its bench.
 

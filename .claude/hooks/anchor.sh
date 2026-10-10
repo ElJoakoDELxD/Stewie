@@ -5,7 +5,7 @@ here="$(dirname "${BASH_SOURCE[0]}")"
 source "${here}/lib/chat.sh"
 
 input="$(cat)"
-eval "$(printf '%s' "${input}" | python3 -c '
+eval "$(printf '%s' "${input}" | python3 -I -c '
 import json, shlex, sys
 d = json.load(sys.stdin)
 for k in ("session_id", "transcript_path"):
@@ -16,7 +16,7 @@ root="${CLAUDE_PROJECT_DIR:-$(stewie_root)}"
 cd "${root}" || exit 0
 bin="${root}/tools/bin"
 offline="${STEWIE_OFFLINE:-0}"
-canon="${STEWIE_CANON:-$(python3 -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])' 2>/dev/null)}"
+canon="${STEWIE_CANON:-$(python3 -I -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])' 2>/dev/null)}"
 norm() { printf '%s' "$1" | tr 'A-Z' 'a-z' | sed -E 's#^[a-z+]+://([^@/]*@)?##; s#^git@([^:]*):#\1/#; s#\.git/?$##; s#/+$##'; }
 
 err="$(mktemp)"; trap 'rm -f "${err}"' EXIT
