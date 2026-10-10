@@ -6,7 +6,7 @@ source "${here}/lib/command.sh"
 source "${here}/lib/chat.sh"
 
 input="$(cat)"
-eval "$(printf '%s' "${input}" | python3 -c '
+eval "$(printf '%s' "${input}" | python3 -I -c '
 import json, shlex, sys
 d = json.load(sys.stdin)
 ti = d.get("tool_input") or {}
@@ -23,7 +23,7 @@ deny() { echo "BLOCKED by guard-main.sh: $1" >&2; exit 2; }
 case "${tool}" in
   Write|Edit|MultiEdit|NotebookEdit)
     [[ "${branch}" == "main" && -n "${path}" ]] || exit 0
-    abs="$(python3 -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${cwd}" "${path}")"
+    abs="$(python3 -I -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${cwd}" "${path}")"
     real="$(cd "${root}" && pwd -P)"
     if [[ "${abs}" == "${real}" || "${abs}" == "${real}"/* ]] && [[ "${abs}" != "${real}/.agent/"* ]]; then
       deny "main is read-only. Write in .agent/, your agent's branch; a change to the template goes on another branch, by a pull request the person approves."
@@ -33,7 +33,7 @@ case "${tool}" in
   *) exit 0 ;;
 esac
 
-reason="$(executable_text "${command}" | python3 "${here}/lib/git_calls.py" | python3 -c '
+reason="$(executable_text "${command}" | python3 -I "${here}/lib/git_calls.py" | python3 -I -c '
 import json, os, re, sys
 cwd, root, branch = sys.argv[1], os.path.realpath(sys.argv[2]), sys.argv[3]
 agent = os.path.join(root, ".agent")
@@ -52,8 +52,6 @@ for line in sys.stdin:
     for d in c["C"]:
         where = os.path.join(where, d)
     where = os.path.realpath(where)
-    if c["C"] and not (where == root or where.startswith(root + os.sep)):
-        continue
     sub, args = c["sub"], c["args"]
     flags = [a for a in args if a.startswith("-")]
     operands = [a for a in args if not a.startswith("-")]
@@ -63,6 +61,12 @@ for line in sys.stdin:
         print("moves, renames or deletes main"); break
     if sub in ("update-ref", "symbolic-ref") and any(o in (MAIN, "refs/heads/" + MAIN) for o in operands):
         print("rewrites main through ref plumbing"); break
+    if sub == "worktree" and operands[:1] == ["add"] and (MAIN in operands[1:] or any(f in ("-b", "-B") for f in flags) and MAIN in operands):
+        print("checks main out in another worktree"); break
+    if sub in ("switch", "checkout") and (MAIN in operands or to_main(" ".join(operands))) and ("--ignore-other-worktrees" in flags or any(f in ("-C", "-B") for f in flags)):
+        print("forces or resets main in another worktree"); break
+    if c["C"] and not (where == root or where.startswith(root + os.sep)):
+        continue
     in_main_tree = (where == root or where.startswith(root + os.sep)) and not (where == agent or where.startswith(agent + os.sep))
     if branch == MAIN and in_main_tree and (sub in COMMITTING or sub == "push"):
         print("would change main from its own worktree (git %s)" % sub); break

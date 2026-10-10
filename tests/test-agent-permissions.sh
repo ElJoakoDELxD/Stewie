@@ -46,7 +46,8 @@ check "it holds before a declaration too"  '[[ $(STEWIE_CHAT=chat-a run Read "${
 echo "=== pushes come only from a declared path ==="
 check "a push from .agent/ passes"         '[[ $(run Bash "${A}" "${tr}" command="git push") == PASS ]]'
 check "a push from the project is refused" '[[ $(run Bash "${P}" "${tr}" command="git push origin HEAD") == BLOCK ]]'
-check "and the refusal says how"           'grep -q "cd .agent" "${TMP}/hook.err"'
+check "and the refusal says how"           'grep -q "git -C .agent push" "${TMP}/hook.err"'
+check "and the way it says passes"         '[[ $(run Bash "${P}" "${tr}" command="git -C .agent push") == PASS ]]'
 check "a chained push is judged where it runs" '[[ $(run Bash "${P}" "${tr}" command="cd .agent && git push") == BLOCK ]]'
 check "a push named in a message is not a push" '[[ $(run Bash "${A}" "${tr}" command="git commit -m \"push later\"") == PASS ]]'
 check "other commands pass"                '[[ $(run Bash "${P}" "${tr}" command="ls -la") == PASS ]]'

@@ -53,7 +53,7 @@ workplace="${STEWIE_WORKPLACE:-no workplace declared}"
 sandbox="sandbox off"
 stewie_sandboxed "${root}" && sandbox="sandbox on"
 
-served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -c '
+served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -I -c '
 import json, sys, time
 from datetime import datetime
 try:

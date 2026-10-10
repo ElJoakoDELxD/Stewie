@@ -3,10 +3,7 @@
 source "$(dirname "$0")/lib.sh"
 S="${STEWIE}/.claude/settings.json"
 
-# The matching follows code.claude.com/docs/en/hooks (Matcher patterns; How if patterns match Bash commands)
-# and code.claude.com/docs/en/permissions (Wildcard patterns). It checks the wiring under those rules,
-# not the judge's verdicts.
-gk() { python3 - "${S}" "$@" <<'PY'
+gk() { python3 -I - "${S}" "$@" <<'PY'
 import json, re, sys
 s = json.load(open(sys.argv[1]))["hooks"]
 what, *args = sys.argv[2:]

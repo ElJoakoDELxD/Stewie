@@ -6,7 +6,7 @@ source "${here}/lib/command.sh"
 source "${here}/lib/chat.sh"
 
 input="$(cat)"
-eval "$(printf '%s' "${input}" | python3 -c '
+eval "$(printf '%s' "${input}" | python3 -I -c '
 import json, shlex, sys
 d = json.load(sys.stdin)
 ti = d.get("tool_input") or {}
@@ -29,7 +29,7 @@ chats="${root}/.agent/chats"
 own="${chats}/${STEWIE_CHAT_ID}.md"
 
 deny() { echo "BLOCKED by agent-permissions.sh: $1" >&2; exit 2; }
-resolve() { python3 -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${cwd}" "$1"; }
+resolve() { python3 -I -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${cwd}" "$1"; }
 other_chat() { deny "$1 is another chat's memory. A chat reads only its own file, .agent/chats/${STEWIE_CHAT_ID}.md; what is known lives in .agent/memory/."; }
 
 case "${tool}" in
@@ -60,7 +60,7 @@ within() {
   local base
   while IFS= read -r base; do
     [[ -n "${base}" ]] || continue
-    base="$(python3 -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${root}" "${base}")"
+    base="$(python3 -I -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${root}" "${base}")"
     [[ "$1" == "${base}" || "$1" == "${base}/"* ]] && return 0
   done < <(effects "$2")
   return 1
@@ -69,7 +69,7 @@ within() {
 case "${tool}" in
   Write|Edit|MultiEdit|NotebookEdit)
     abs="$(resolve "${path}")"
-    if [[ "${abs}" == "$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${file}")" ]]; then
+    if [[ "${abs}" == "$(python3 -I -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${file}")" ]]; then
       deny "agent '${STEWIE_AGENT}' may not change its own definition (${file#"${root}"/}). Changes to it arrive by pull request."
     fi
     within "${abs}" writes || deny "agent '${STEWIE_AGENT}' declares no effect that writes ${abs#"${root}"/} (${file#"${root}"/}, effects)."
@@ -77,8 +77,8 @@ case "${tool}" in
   Bash)
     while IFS= read -r where; do
       [[ -n "${where}" ]] || continue
-      within "${where}" pushes || deny "agent '${STEWIE_AGENT}' pushes only from what ${file#"${root}"/} declares under pushes:. Run 'cd .agent' in one call, then 'git push' alone."
-    done < <(executable_text "${command}" | python3 "${here}/lib/git_calls.py" | python3 -c '
+      within "${where}" pushes || deny "agent '${STEWIE_AGENT}' pushes only from what ${file#"${root}"/} declares under pushes:. Run 'git -C .agent push' alone."
+    done < <(executable_text "${command}" | python3 -I "${here}/lib/git_calls.py" | python3 -I -c '
 import json, os, sys
 for line in sys.stdin:
     c = json.loads(line)
