@@ -523,7 +523,7 @@ def lessons():
             for t in meta.get("trigger", []):
                 kind, _, rest = t.partition(" ")
                 rest = rest.strip()
-                if kind in ("bash", "prompt", "fail", "tool") and rest and len(rest) <= 300:
+                if kind in ("bash", "prompt", "fail", "tool", "reply") and rest and len(rest) <= 300:
                     try:
                         triggers.append((kind, re.compile(rest)))
                     except re.error:
@@ -547,6 +547,9 @@ def fired(lesson, event, data):
         if kind == "tool" and event == "PreToolUse" and pat.fullmatch(tool):
             return True
         if kind == "prompt" and event == "UserPromptSubmit" and pat.search(data.get("prompt", "")):
+            return True
+        if kind == "reply" and event == "Stop" and not data.get("stop_hook_active") \
+           and pat.search(str(data.get("last_assistant_message", ""))):
             return True
         if kind == "fail" and event == "PostToolUseFailure" and pat.search(str(data.get("error", ""))):
             return True
@@ -703,6 +706,9 @@ def cmd_recall(args):
         except Exception:
             pass
         text = "\n\n".join(said)[:2000]
+        if event == "Stop":
+            print("Stewie memory: your reply repeats an error a lesson names. Correct the reply before ending the turn.\n" + text, file=sys.stderr)
+            return 2
         if deny:
             print("BLOCKED by memory.py: a lesson the person escalated because reminding did not teach it.\n" + text, file=sys.stderr)
             return 2

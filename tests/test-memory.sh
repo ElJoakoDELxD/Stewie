@@ -71,6 +71,10 @@ check "editing the system points to its rule"          'recall "$(edit_call s3 "
 check "a pointer comes once per session"               '[[ -z "$(recall "$(edit_call s3 "${R}/tools/x")")" ]]'
 check "a pointer comes again in a new session"         'recall "$(edit_call s3b "${R}/rules/x.md")" | grep -q "rules/changing-the-system.md"'
 check "a subagent gets the pointer its parent saw"     'recall "$(agent_edit s3 a1 "${R}/rules/x.md")" | grep -q "rules/changing-the-system.md"'
+stop='{"hook_event_name":"Stop","session_id":"s17","last_assistant_message":"[10-10-2026 11:3x] done"}'
+check "a reply with a made-up time is sent back"       'out="$(printf "%s" "${stop}" | bash "${R}/.claude/hooks/recall.sh" 2>&1 >/dev/null)"; [[ $? -eq 2 ]] && grep -q "invented-time" <<< "${out}"'
+check "but only once per reply"                        '[[ "$(rc "${stop/\"s17\"/\"s17\",\"stop_hook_active\":true}")" == 0 ]]'
+check "a reply with a real time ends"                  '[[ "$(rc "${stop/3x/32}")" == 0 ]]'
 failure='{"hook_event_name":"PostToolUseFailure","session_id":"s4","tool_name":"Bash","error":"CONNECT tunnel failed, response 403"}'
 check "a refused host is recalled after the failure"   'recall "${failure}" | grep -q "refused-host"'
 check "and as context for that event"                  'recall "${failure/s4/s4b}" | shape PostToolUseFailure'
@@ -147,7 +151,7 @@ check "the retrospective keeps what a person typed" 'out="$(mem retro "${T}")"; 
 
 echo
 echo "=== it is wired ==="
-for event in SessionStart PreToolUse UserPromptSubmit PostToolUseFailure; do
+for event in SessionStart PreToolUse UserPromptSubmit PostToolUseFailure Stop; do
   check "recall runs on ${event}" 'python3 -I -c "import json,sys; h=json.load(open(sys.argv[1]))[\"hooks\"][sys.argv[2]]; sys.exit(0 if any(\"recall.sh\" in x.get(\"command\",\"\") for g in h for x in g[\"hooks\"]) else 1)" "${STEWIE}/.claude/settings.json" '"${event}"
 done
 check "the hook code sits where sandboxed Bash cannot write" '[[ -f "${STEWIE}/.claude/hooks/lib/memory.py" && ! -e "${STEWIE}/tools/bin/memory.py" ]]'
