@@ -3,3 +3,5 @@
 # Written by the sandbox kit on each machine
 .claude/settings.local.json
 __pycache__/
+# The memory graph index, rebuilt from the files
+.memory/

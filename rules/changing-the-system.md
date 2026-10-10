@@ -1,3 +1,11 @@
+---
+trigger: edit CLAUDE.md
+trigger: edit rules/*
+trigger: edit knowledge/*
+trigger: edit .claude/*
+trigger: edit tools/*
+trigger: edit tests/*
+---
 # Changing the system
 
 The system is this copy's `main`: the template, its hooks, skills and forms. An agent never edits it.
