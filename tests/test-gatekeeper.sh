@@ -41,6 +41,34 @@ check "the criterion file exists"                         '[[ -s "${STEWIE}/.cla
 check "every judge has a model and the marked input"      'gk wired'
 check "a Stop judge that always runs"                     'gk stop'
 
+check "isolated local acts are left to code"            'grep -q "and you do not judge it, only when it runs isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "elsewhere a local act is judged"                   'grep -q "judge the local act as you judge an outward one" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+I="${STEWIE}/.claude/hooks/isolation.sh"; P="${TMP}/proj"; mkdir -p "${P}/.claude"; H="${TMP}/home"; mkdir -p "${H}/.claude"
+iso() { printf '{"hook_event_name":"%s"}' "${EV:-SessionStart}" | env -i PATH="${PATH}" HOME="${H}" CLAUDE_PROJECT_DIR="${P}" "$@" bash "${I}" | python3 -I -c 'import json,sys,os; o=json.load(sys.stdin)["hookSpecificOutput"]; print(o["hookEventName"] + " " + o["additionalContext"])'; }
+cloud="CLAUDE_CODE_REMOTE=true CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE=cloud_default"
+check "a cloud container says so"                         '[[ "$(iso ${cloud})" == "SessionStart Stewie isolation: a cloud container." ]]'
+check "and says it again at each message"                 '[[ "$(EV=UserPromptSubmit iso ${cloud})" == "UserPromptSubmit Stewie isolation: a cloud container." ]]'
+check "this machine with no sandbox says so"              '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+check "a remote flag alone is not a cloud"                '[[ "$(iso CLAUDE_CODE_REMOTE=true)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+printf '{"env":{"CLAUDE_CODE_REMOTE":"true"}}' > "${P}/.claude/settings.json"
+check "a cloud the settings claim is not a cloud"         '[[ "$(iso ${cloud})" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+rm "${P}/.claude/settings.json"
+printf '{"sandbox":{"enabled":true}}' > "${H}/.claude/settings.json"
+check "a sandbox that may fall back is no sandbox"        '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+printf '{"sandbox":{"enabled":true,"failIfUnavailable":true,"excludedCommands":["git *"]}}' > "${H}/.claude/settings.json"
+check "a sandbox that must run counts, with its exclusions" '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with the Bash sandbox on; these run outside it: git *." ]]'
+printf '{"sandbox":{"enabled":true,"failIfUnavailable":true},"permissions":{"additionalDirectories":["~"]}}' > "${H}/.claude/settings.json"
+check "a sandbox that can write the home folder is no sandbox" '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+printf '{"sandbox":{"enabled":true,"failIfUnavailable":true,"enableWeakerNestedSandbox":true}}' > "${H}/.claude/settings.json"
+check "a weaker sandbox is no sandbox"                    '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+mkdir -p "${TMP}/cfg"; printf '{"sandbox":{"enabled":true,"failIfUnavailable":true,"filesystem":{"disabled":true}}}' > "${TMP}/cfg/settings.json"
+check "the configured user folder is read, and an open filesystem is no sandbox" '[[ "$(iso CLAUDE_CONFIG_DIR="${TMP}/cfg")" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+printf '{"sandbox":{"enabled":false}}' > "${P}/.claude/settings.local.json"
+check "any setting that turns it off wins"                '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+check "it runs at session start and at each message"      'python3 -I -c "import json,sys; h=json.load(open(sys.argv[1]))[\"hooks\"]; sys.exit(0 if all(any(\"isolation.sh\" in x.get(\"command\",\"\") for g in h[e] for x in g[\"hooks\"]) for e in (\"SessionStart\",\"UserPromptSubmit\")) else 1)" "${S}"'
+check "and outward acts still need the principal"         'grep -q "An outward act is \*\*not authorized\*\*" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "Stop counts local acts off the cloud"              'grep -q "also take the local acts that did not run isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+
 echo
 echo "=== pushes and gh api are judged ==="
 for c in "git push" "git push -u origin fix" "cd .agent && git push" "FOO=1 git push origin fix" \

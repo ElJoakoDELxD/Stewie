@@ -9,8 +9,10 @@ import types
 
 SHARED = re.compile(r"^(?:refs/)?(?:heads/)?(?:candidate/.+|custodian)$")
 TAG = re.compile(r"^(?:refs/)?tags/.|^v\d+\.\d+")
-UNREAD = re.compile(r"[$*?\[]|\{[^}]*(?:,|\.\.)[^}]*\}")
+UNREAD = re.compile(r"[$*?\[]|\{\}|\{[^}]*(?:,|\.\.)[^}]*\}")
 CLUSTER = re.compile(r"-[A-Za-z]+")
+COMMITTING = {"commit", "merge", "cherry-pick", "revert", "am", "pull", "rebase", "reset"}
+MOVED_ENV = re.compile(r"(?:^|[\s;&|(])(?:export\s+)?GIT_(?:DIR|WORK_TREE)=|\benv\s+(?:-\S+\s+)*-C\b|\benv\s+(?:-\S+\s+)*--chdir\b")
 VALUED = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
 GUARDED_OPTS = ["--force", "--force-with-lease", "--force-if-includes", "--delete", "--prune", "--mirror", "--all",
                 "--branches", "--tags", "--follow-tags"]
@@ -187,6 +189,57 @@ def gh(words, command):
     return None
 
 
+def commit(c, cwd, moved, command, sub):
+    args = c["args"]
+    operands = [a for a in args if not a.startswith("-")]
+    if args[:1] and args[0] in ("--abort", "--quit", "--show-current-patch", "--edit-todo") or args == ["--dry-run"]:
+        return None
+    if sub == "reset" and not any(a in ("--hard", "--soft", "--mixed", "--keep", "--merge") for a in args) \
+       and (not operands or "--" in args and args.index("--") < len(args) and all(args.index(o) > args.index("--") for o in operands)):
+        return None
+    if sub == "pull" and args == ["--ff-only"]:
+        return None
+    if moved or c["elsewhere"] or c.get("stdin") or any(UNREAD.search(d) for d in c["C"]) or MOVED_ENV.search(command):
+        return "a commit to a branch that cannot be read before it runs"
+    where = cwd
+    for d in c["C"]:
+        where = os.path.join(where, os.path.expanduser(d))
+    branches = [git(where, "symbolic-ref", "--short", "-q", "HEAD")]
+    for state in ("rebase-merge/head-name", "rebase-apply/head-name"):
+        path = git(where, "rev-parse", "--path-format=absolute", "--git-path", state)
+        try:
+            with open(path) as f:
+                branches.append(f.read().strip())
+        except OSError:
+            pass
+    if sub == "rebase":
+        branches += operands
+    shared = [b for b in branches if b and SHARED.match(b)]
+    if not shared:
+        return None
+    top = os.path.realpath(git(where, "rev-parse", "--show-toplevel") or where)
+    common = git(where, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    agent = os.path.realpath(os.path.join(os.path.dirname(common), ".agent")) if common else ""
+    if shared == ["custodian"] and top == agent:
+        return None
+    return "a commit to " + ", ".join(shared)
+
+
+def moves_shared_ref(sub, args):
+    operands = [a for a in args if not a.startswith("-")]
+    if sub == "branch":
+        moving = any(a in ("-f", "--force", "-m", "-M", "-c", "-C", "-d", "-D", "--delete", "--move", "--copy") for a in args)
+        return moving and any(SHARED.match(o) for o in operands)
+    if sub == "update-ref":
+        return "--stdin" in args or any(SHARED.match(o) or o == "HEAD" for o in operands[:1])
+    if sub == "symbolic-ref":
+        return len(operands) >= 2 and bool(SHARED.match(operands[1]))
+    if sub in ("fetch", "pull"):
+        dsts = [o.lstrip("+").rpartition(":")[2] for o in operands if ":" in o]
+        return any(SHARED.match(d) or "*" in d for d in dsts)
+    return False
+
+
 def custodian_branch(sub, args):
     if sub == "worktree":
         if args[:1] != ["add"]:
@@ -194,16 +247,16 @@ def custodian_branch(sub, args):
         args = args[1:]
     if "--" in args and sub == "checkout":
         return False
-    created = [args[i + 1] for i, a in enumerate(args[:-1]) if a in ("-b", "-B", "-c", "-C", "--create", "--force-create", "--orphan")]
+    created = [(a, args[i + 1]) for i, a in enumerate(args[:-1]) if a in ("-b", "-B", "-c", "-C", "--create", "--force-create", "--orphan")]
     if created:
-        return any(SHARED.match(b) and "custodian" in b for b in created)
+        return any(SHARED.match(b) and ("custodian" in b or f in ("-B", "-C", "--force-create")) for f, b in created)
     operands = [a for a in args if not a.startswith("-")]
-    return bool(operands) and operands[-1] in ("custodian", "refs/heads/custodian")
+    return bool(operands) and operands[-1] in ("custodian", "heads/custodian", "refs/heads/custodian")
 
 
 def bash(command, cwd):
     acts = []
-    text = command.replace("`", " ; ")
+    text = command
     try:
         progs, calls = git_calls.programs(text), git_calls.analyse(text)
     except ValueError:
@@ -213,15 +266,21 @@ def bash(command, cwd):
         except ValueError:
             if re.search(r"\bgit\b[^\n]*\bpush\b|send-pack|http-push|\bgh\s+api\b|\battach\b", text):
                 acts.append("a command that cannot be read and names a push, gh api or attach")
+            elif re.search(r"\bgit\b[^\n]*\b(?:commit|merge|rebase|reset|pull|cherry-pick|revert|am|update-ref|branch|fetch|symbolic-ref)\b", text) \
+                    and SHARED.match(git(cwd, "symbolic-ref", "--short", "-q", "HEAD")):
+                acts.append("a command that cannot be read and may move a shared branch")
             return acts
     if VARPUSH.search(text):
         acts.append("a push through a variable")
-    moved = False
+    try:
+        moved = any(p["words"][0].split("/")[-1] in ("cd", "pushd", "popd") for p in git_calls.programs(data_heredocs_removed(text)))
+    except ValueError:
+        moved = any(p["words"][0].split("/")[-1] in ("cd", "pushd", "popd") for p in progs)
     for p in progs:
         words = p["words"]
         prog = words[0].split("/")[-1]
         if prog in ("cd", "pushd", "popd"):
-            moved = True
+            pass
         elif prog == "attach" and words[1:2] == ["custodian"]:
             acts.append("attaching the custodian")
         elif prog == "gh":
@@ -230,6 +289,20 @@ def bash(command, cwd):
                 acts.append(act)
     for c in calls:
         sub, args = c["sub"], c["args"]
+        if sub not in BUILTIN:
+            alias = next((x.split("=", 1)[1] for x in c["c"] if x.lower().startswith("alias." + sub.lower() + "=")), None)
+            if alias is None:
+                where = cwd
+                for d in c["C"]:
+                    where = os.path.join(where, os.path.expanduser(d))
+                alias = git(where, "config", "--get", "alias." + sub)
+            first = re.sub(r"^!\s*(?:\S*/)?git\s+", "", (alias or "").strip()).lstrip("!").split()[:1]
+            if first and first[0] in COMMITTING:
+                sub = first[0]
+        if sub in COMMITTING:
+            act = commit(c, cwd, moved, text, sub)
+            if act:
+                acts.append(act)
         if sub == "push":
             act = push(c, cwd, moved, text)
             if act:
@@ -238,6 +311,8 @@ def bash(command, cwd):
             acts.append("a git command whose name cannot be read before it runs")
         elif sub in ("send-pack", "http-push"):
             acts.append("a push through plumbing")
+        elif moves_shared_ref(sub, args):
+            acts.append("moving a shared branch without a commit")
         elif sub in ("worktree", "checkout", "switch") and custodian_branch(sub, args):
             acts.append("checking out the custodian")
         elif sub == "rebase":
