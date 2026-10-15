@@ -41,8 +41,45 @@ def base(word):
     return word.split("/")[-1]
 
 
+def substitutions(text):
+    outer, inner, i, single = [], [], 0, False
+    while i < len(text):
+        if text[i] == "'" and (single or text.count("'", i + 1)):
+            single = not single
+            outer.append(text[i])
+            i += 1
+        elif single:
+            outer.append(text[i])
+            i += 1
+        elif text[i] == "\\" and i + 1 < len(text):
+            outer.append(text[i:i + 2])
+            i += 2
+        elif text.startswith("$(", i) and not text.startswith("$((", i):
+            depth, j = 1, i + 2
+            while j < len(text) and depth:
+                depth += {"(": 1, ")": -1}.get(text[j], 0)
+                j += 1
+            inner.append(text[i + 2:j - 1])
+            outer.append("$SUBST")
+            i = j
+        elif text[i] == "`":
+            j = text.find("`", i + 1)
+            j = len(text) if j < 0 else j
+            inner.append(text[i + 1:j])
+            outer.append("$SUBST")
+            i = j + 1
+        else:
+            outer.append(text[i])
+            i += 1
+    return "".join(outer), inner
+
+
 def programs(text, depth=0, out=None):
     out = [] if out is None else out
+    text, inner = substitutions(text)
+    if depth < 3:
+        for t in inner:
+            programs(t, depth + 1, out)
     for tokens in segments(text):
         words, skip = [], False
         for tok in tokens:
@@ -73,6 +110,14 @@ def programs(text, depth=0, out=None):
                     if script is not None:
                         programs(script, depth + 1, out)
                     break
+            continue
+        if depth < 3 and prog == "find":
+            for j, w in enumerate(words):
+                if w in ("-exec", "-execdir", "-ok", "-okdir"):
+                    rest = words[j + 1:]
+                    end = next((k for k, x in enumerate(rest) if x in (";", "+", "\\;")), len(rest))
+                    if rest[:end]:
+                        out.append({"words": rest[:end], "stdin": True})
             continue
         if depth < 3 and prog == "eval":
             programs(" ".join(w for w in words[i + 1:] if not w.startswith("-")), depth + 1, out)
