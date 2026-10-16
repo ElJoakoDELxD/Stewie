@@ -604,7 +604,16 @@ def message(lesson, count):
             lines.append(live)
     if text:
         lines.append(text)
+    if count >= 2 and "error" in meta.get("kind", []) and not guarded(lesson):
+        lines.append("This is its third time at least: reminding has failed. Stop and escalate it, as lessons/_schema.md says.")
     return "\n".join(lines)
+
+
+def failure(name, tin, text):
+    first = next((l for l in text.split("\n") if l.strip() and not l.startswith("Exit code")), text[:80])
+    first = re.sub(r"(/[\w.@-]+)+|\b\d+\b|'[^']*'|\"[^\"]*\"", "_", first)[:90]
+    prog = (str(tin.get("command", "")).split() or [""])[0] if name == "Bash" else ""
+    return f"{name} {prog}: {first}".strip()
 
 
 def hits_fd(flags):
@@ -684,17 +693,29 @@ def cmd_recall(args):
                 continue
             notes.append(path)
             deny = deny or strict
-        if not said:
+        rows = [dict(lesson=path, denied=deny) for path in notes]
+        if event == "PostToolUseFailure":
+            sig = failure(data.get("tool_name", ""), data.get("tool_input") or {}, str(data.get("error", "")))
+            seen = sum(1 for h in hits if h.get("error") == sig and h.get("session") == session
+                       and str(h.get("agent") or "") == agent)
+            rows.append(dict(error=sig))
+            if seen >= 2:
+                said.append(clean(f"Stewie: this error has happened {seen + 1} times in this chat: {sig}", 400)
+                            + "\nCLAUDE.md: the third time an error happens, stop and clear it before other work."
+                            " Find its cause; if it is a habit, write a lesson whose trigger catches it.")
+        if not rows:
             return 0
         try:
             log = log_open()
             if log:
                 with log:
-                    for path in notes:
+                    for row in rows:
                         log.write(json.dumps(dict(ts=int(time.time()), session=session, agent=agent, event=event,
-                                                  tool=data.get("tool_name", ""), lesson=path, denied=deny)) + "\n")
+                                                  tool=data.get("tool_name", ""), **row)) + "\n")
         except Exception:
             pass
+        if not said:
+            return 0
         text = "\n\n".join(said)[:2000]
         if event == "Stop":
             print("Stewie memory: your reply repeats an error a lesson names. Correct the reply before ending the turn.\n" + text, file=sys.stderr)
@@ -747,10 +768,7 @@ def cmd_repeats(args):
                 if m and text.startswith("PreToolUse:"):
                     key = f"blocked by {m.group(1)}"
                 else:
-                    first = next((l for l in text.split("\n") if l.strip() and not l.startswith("Exit code")), text[:80])
-                    first = re.sub(r"(/[\w.@-]+)+|\b\d+\b|'[^']*'|\"[^\"]*\"", "_", first)[:90]
-                    prog = (tin.get("command", "").split() or [""])[0] if name == "Bash" else ""
-                    key = f"failed {name} {prog}: {first}".strip()
+                    key = f"failed {failure(name, tin, text)}"
                 groups.setdefault(key, []).append(n)
                 if name == "Bash":
                     data = dict(tool_name="Bash", tool_input=tin, error=text)

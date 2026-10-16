@@ -129,6 +129,20 @@ check "an escalation never blocks anything but a command" '[[ "$(rc "{\"hook_eve
 rm -rf "${R}/.claude/hooks/lessons"
 printf '1\n[]\n' >> "${R}/.memory/hits.jsonl" 2>/dev/null
 check "a malformed hit log silences nothing"           'recall "$(bash_call s14 "true && git x")" | grep -q "git-runs-alone"'
+fail_call() { printf '{"hook_event_name":"PostToolUseFailure","session_id":"%s","tool_name":"Bash","tool_input":{"command":"make %s"},"error":"Exit code 1\\n%s"}' "$1" "$2" "$3"; }
+first="$(recall "$(fail_call e1 a "make: *** No rule for /tmp/x 12")")"; second="$(recall "$(fail_call e1 b "make: *** No rule for /var/y 34")")"
+check "an error twice says nothing"                    '[[ -z "${first}${second}" ]]'
+check "a third error stops the work"                   'recall "$(fail_call e1 c "make: *** No rule for /opt/z 56")" | grep -q "happened 3 times in this chat.*stop and clear it"'
+recall "$(fail_call e2 a "make: *** One")" >/dev/null; recall "$(fail_call e2 a "make: *** One")" >/dev/null
+check "different errors are not mixed"                 '[[ -z "$(recall "$(fail_call e2 a "make: *** Two")")" ]]'
+check "another chat starts its own count"              '[[ -z "$(recall "$(fail_call e3 a "make: *** No rule for /tmp/x 12")")" ]]'
+printf -- '---\ntrigger: bash zzk\nkind: error\n---\n# Habit\n\nDo it right.\n' > "${L}/habit.md"
+for s in k1 k2; do recall "$(bash_call "${s}" "zzk")" >/dev/null; done
+check "a lesson recalled a third time asks to escalate" 'recall "$(bash_call k3 "zzk")" | grep -q "reminding has failed. Stop and escalate"'
+printf -- '---\ntrigger: bash zzr\nrepeat: every\n---\n# Moment\n\nRemember.\n' > "${L}/moment.md"
+for s in r1 r2; do recall "$(bash_call "${s}" "zzr")" >/dev/null; done
+check "a reminder never asks to escalate"              '! recall "$(bash_call r3 "zzr")" | grep -q "escalate"'
+rm -f "${L}/habit.md" "${L}/moment.md"
 
 echo
 echo "=== repetitions are found in a transcript ==="
