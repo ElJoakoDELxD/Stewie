@@ -22,6 +22,8 @@ bash_call() { printf '{"hook_event_name":"PreToolUse","session_id":"%s","tool_na
 edit_call() { printf '{"hook_event_name":"PreToolUse","session_id":"%s","tool_name":"Edit","tool_input":{"file_path":"%s"}}' "$1" "$2"; }
 agent_edit() { printf '{"hook_event_name":"PreToolUse","session_id":"%s","agent_id":"%s","tool_name":"Edit","tool_input":{"file_path":"%s"}}' "$1" "$2" "$3"; }
 L="${R}/knowledge/lessons"
+check "the shipped git lesson blocks a chained git call" 'denied "$(bash_call s0 "ls; git log")" "git -C" && [[ "$(rc "$(bash_call s0b "git -C x log")")" == 0 ]]'
+sed 's/^enforce: deny$/repeat: every/' "${R}/.claude/hooks/lessons/git-runs-alone.md" > "${L}/git-runs-alone.md"; rm -rf "${R}/.claude/hooks/lessons"
 
 echo "=== the architecture is a graph ==="
 check "a node can be shown before any index"     'mem show CLAUDE.md | head -1 | grep -q "^CLAUDE.md "'
@@ -207,6 +209,15 @@ O="${R}/scratch/old"; mkdir -p "${O}"; printf -- '---\nformat: 1\n---\n# Memory\
 check "an old-format memory asks for consent"    'out="$(mem check --memory "${O}")"; grep -q "old format" <<< "${out}"'
 python3 -I -c 'print("---\nformat: 2\n---\n" + "word " * 301)' > "${Y}/core.md"
 check "a core over its words is caught"          'out="$(mem check --memory "${Y}")"; grep -q "core.md: 301 words, over 300" <<< "${out}"'
+A="${R}/scratch/cap"; cp -R "${X}" "${A}"
+printf -- '---\ntitle: Old task\nstatus: done\nowner: agent\nopened: 2026-10-01\nclosed: 2026-10-10\n---\n' > "${A}/open/old.md"
+mem index --memory "${A}" >/dev/null
+check "an archived entry stays off the index"     '! grep -q "Old task" "${A}/INDEX.md" && mem check --memory "${A}" | grep -q "follows its schemas"'
+for i in $(seq 1 60); do printf -- '---\ntitle: Lesson number %s\nstatus: current\ndate: 2026-10-16\n---\n' "${i}" > "${A}/lessons/l${i}.md"; done
+mem index --memory "${A}" >/dev/null
+check "an index over its words is caught"         'out="$(mem check --memory "${A}")"; grep -q "INDEX.md: [0-9]* words, over 400; close, retire or replace" <<< "${out}"'
+sed -i 's/^status: current$/status: retired/' "${A}"/lessons/l*.md; mem index --memory "${A}" >/dev/null
+check "retiring entries makes room"               'mem check --memory "${A}" | grep -q "follows its schemas"'
 
 echo
 echo "=== it is wired ==="

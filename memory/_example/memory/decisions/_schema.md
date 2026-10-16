@@ -2,6 +2,7 @@
 required: title, status, date, by
 optional: source, links
 status: current, replaced
+archived: replaced
 ---
 # Decisions
 

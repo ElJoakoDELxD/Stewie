@@ -776,6 +776,7 @@ def cmd_retro(args):
 
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CORE_WORDS = 300
+INDEX_WORDS = 400
 
 
 def memory_dir(arg):
@@ -874,7 +875,7 @@ def problems(mem):
                 found.append(f"{rel}: needs {key}")
         for key, values in rules.items():
             value = (meta.get(key) or [""])[0].strip("\"'")
-            if key not in ("required", "optional", "repeatable") and value and value not in values:
+            if key not in ("required", "optional", "repeatable", "archived") and value and value not in values:
                 found.append(f"{rel}: {key} is {value}, not one of {', '.join(values)}")
         for key in ("date", "opened", "closed"):
             value = (meta.get(key) or [""])[0].strip("\"'")
@@ -882,6 +883,9 @@ def problems(mem):
                 found.append(f"{rel}: {key} is not a real date as YYYY-MM-DD")
         if cat == "open" and (meta.get("status") or [""])[0].strip("\"'") in ("done", "dropped") and not meta.get("closed"):
             found.append(f"{rel}: a closed item needs closed")
+    words = len(catalog_text(mem)[0].split())
+    if words > INDEX_WORDS:
+        found.append(f"INDEX.md: {words} words, over {INDEX_WORDS}; close, retire or replace entries to make room")
     if not found and (mem / "INDEX.md").exists() and text_of(mem / "INDEX.md") != catalog_text(mem)[0]:
         found.append("INDEX.md: stale; run memory index")
     return list(dict.fromkeys(clean(p, 300) for p in found))
@@ -909,8 +913,10 @@ def write_index(mem, text):
 def catalog_text(mem):
     lines = ["# Index", "", "Written by `memory index`; never edit it by hand.", ""]
     groups = {}
-    for cat, _, f in entries(mem):
+    for cat, rules, f in entries(mem):
         meta, body = frontmatter(text_of(f))
+        if (meta.get("status") or [""])[0].strip("\"'") in rules.get("archived", []):
+            continue
         title = (meta.get("title") or [""])[0].strip("\"'") or next((heading(l).group(2) for l in unfenced(body.split("\n")) if heading(l)), f.stem)
         bits = [plain_text(x.strip("\"'"), 40) for x in ((meta.get("status") or [""])[0], (meta.get("date") or meta.get("opened") or [""])[0], (meta.get("owner") or [""])[0]) if x]
         groups.setdefault(cat, []).append(f"- [{plain_text(title, 120)}]({urllib.parse.quote(str(f.relative_to(mem)))})" + (" · " + " · ".join(bits) if bits else ""))

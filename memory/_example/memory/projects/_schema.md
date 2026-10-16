@@ -2,6 +2,7 @@
 required: title, status, date
 optional: path, source, links
 status: active, paused, done
+archived: done
 ---
 # Projects
 

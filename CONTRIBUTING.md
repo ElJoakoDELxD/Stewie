@@ -8,7 +8,7 @@ Stewie's template changes only by release. The custodian curates it, and it merg
 2. **A rule is a hook with a bench, a declared effect, a deny rule, at most one line in `CLAUDE.md`, or a file in `rules/` of at most 200 words that points to its full version.** Prose policies are not accepted.
 3. **One open template pull request at a time.** Semver: a patch for fixes, a minor for features, a major for breaks.
 4. **Every line, hook, skill and tool passes the removal test, and passes it again when the model changes.** Does it serve the north star at the head of `CLAUDE.md`, or the custodian's mandate? Would removing it cause a mistake the current model actually makes, shown by a bench, an experiment, or an incident named in the git log? Keep it only on two yeses; to re-test a hook, disable it for one ordinary session. When unsure, remove it and list it in the pull request as removable and restorable.
-5. **Sizes are bounded where they are read.** What loads at start ratchets down; each file has its own cap; the whole system has a budget that holds for the release. A pull request that raises any of them says why in its description, and the owner of the canon approves it.
+5. **Sizes are bounded where they are read.** Less filler is what makes an agent attend to its own specification. What loads at start ratchets down; each file has its own cap; the whole system has a budget that holds for the release. A pull request that raises any of them says why in its description, and the owner of the canon approves it.
 6. **The custodian's brake and release checklist apply** to every change: see `.claude/agents/custodian.md`.
 
 ## How to propose a change

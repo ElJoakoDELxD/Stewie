@@ -2,6 +2,7 @@
 required: title, status, owner, opened
 optional: closed, source, links
 status: open, done, dropped
+archived: done, dropped
 owner: person, agent
 ---
 # Open

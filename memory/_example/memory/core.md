@@ -3,7 +3,7 @@ format: 2
 ---
 # Core
 
-The only memory loaded at every chat: keep it to what this agent cannot work without, at most 300 words. Everything else goes in a category folder, by its `_schema.md`, and `memory index` lists it in `INDEX.md`.
+Read at every chat with `INDEX.md`: only what this agent cannot work without, at most 300 words. The rest goes in a category folder, by its `_schema.md`; `INDEX.md` lists what is live, at most 400 words.
 
 ## Agent
 
