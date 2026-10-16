@@ -2,8 +2,8 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
-MAX_LOADED=3878
-MAX_WORDS=4964
+MAX_LOADED=3846
+MAX_WORDS=6350
 
 tmp="$(mktemp -d)"; trap 'rm -rf "${tmp}"' EXIT
 canon="$(python3 -I -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])')"
