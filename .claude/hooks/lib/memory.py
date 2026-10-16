@@ -641,18 +641,6 @@ def past_hits(session):
         return rows
 
 
-def in_force(hits):
-    rows = []
-    for lesson in lessons():
-        if "every" in lesson["meta"].get("repeat", []) or guarded(lesson):
-            n = sum(1 for h in hits if h.get("lesson") == lesson["path"])
-            rows.append((n, f"- {clean(title_of(lesson), 120)} ({clean(lesson['path'], 120)}" + (f", recalled {n}×)" if n else ")")))
-    rows.sort(key=lambda r: -r[0])
-    if not rows:
-        return ""
-    return ("Lessons in force; each comes back when its trigger fires:\n" + "\n".join(r for _, r in rows[:10]))[:2000]
-
-
 def clean(text, limit):
     return re.sub(r"[\x00-\x1f\x7f]+", " ", text).replace("BLOCKED by", "blocked by")[:limit]
 
@@ -668,11 +656,6 @@ def cmd_recall(args):
         event = data.get("hook_event_name", "")
         session = data.get("session_id", "")
         hits = past_hits(session)
-        if event == "SessionStart":
-            text = in_force(hits)
-            if text:
-                print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": text}}, ensure_ascii=False))
-            return 0
         ls = lessons()
         found = [l for l in ls if enforced(l, event) and safely_fired(l, event, data)]
         if not found:

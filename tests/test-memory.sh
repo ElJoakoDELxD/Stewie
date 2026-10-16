@@ -43,24 +43,25 @@ echo
 echo "=== what stopped being true is found ==="
 N="${TMP}/notes"; mkdir -p "${N}"
 c1="$(git -C "${R}" rev-parse --short HEAD)"
-printf '# Notes\n\n- **Delegation.** The rule is `rules/delegating-a-task.md`. (%s)\n- **Gone.** See `rules/no-such-rule.md`.\n' "${c1}" > "${N}/n.md"
+printf '# Notes\n\n- **Delegation.** The rule is `rules/ending-a-session.md`. (%s)\n- **Gone.** See `rules/no-such-rule.md`.\n' "${c1}" > "${N}/n.md"
 check "a fresh note is not stale"                '! mem stale --notes "${N}" | grep -q "Delegation"'
-printf '\nChanged.\n' >> "${R}/rules/delegating-a-task.md"; git -C "${R}" commit -qam change
+printf '\nChanged.\n' >> "${R}/rules/ending-a-session.md"; git -C "${R}" commit -qam change
 c2="$(git -C "${R}" rev-parse --short HEAD)"
 out="$(mem stale --notes "${N}")"
-check "a changed source makes its note stale"    'grep -q "changed since: rules/delegating-a-task.md" <<< "${out}"'
+check "a changed source makes its note stale"    'grep -q "changed since: rules/ending-a-session.md" <<< "${out}"'
 check "a missing path is reported"               'grep -q "missing path: rules/no-such-rule.md" <<< "${out}"'
-printf '# Later\n\n- **Rechecked.** `rules/delegating-a-task.md` again. (%s, %s)\n' "${c2}" "${c1}" > "${N}/m.md"
+printf '# Later\n\n- **Rechecked.** `rules/ending-a-session.md` again. (%s, %s)\n' "${c2}" "${c1}" > "${N}/m.md"
 check "the newest commit a note cites is its base" '! mem stale --notes "${N}" | grep -q "/m.md"'
-printf 'Uncommitted.\n' >> "${R}/rules/delegating-a-task.md"
-check "an uncommitted change makes a note stale" 'mem stale --notes "${N}" | grep -q "/m.md.*changed since: rules/delegating-a-task.md"'
-git -C "${R}" checkout -q -- rules/delegating-a-task.md
+printf 'Uncommitted.\n' >> "${R}/rules/ending-a-session.md"
+check "an uncommitted change makes a note stale" 'mem stale --notes "${N}" | grep -q "/m.md.*changed since: rules/ending-a-session.md"'
+git -C "${R}" checkout -q -- rules/ending-a-session.md
 
 echo
 echo "=== lessons come back by themselves ==="
 check "git after another command recalls the lesson"   'recall "$(bash_call s1 "cd x && git status")" | grep -q "git-runs-alone"'
 check "a reminder is context for the call, nothing else" 'recall "$(bash_call s1 "cd x && git status")" | shape PreToolUse'
 check "git alone recalls nothing"                      '[[ -z "$(recall "$(bash_call s1 "git status")")" ]]'
+check "a session starts with nothing recalled"         '[[ -z "$(recall "{\"hook_event_name\":\"SessionStart\",\"session_id\":\"s5\"}")" ]]'
 check "a hook that recalls nothing lets the call run"  '[[ "$(rc "$(bash_call s1 "git status")")" == 0 ]]'
 check "a hook that reminds lets the call run"          '[[ "$(rc "$(bash_call s1 "cd x && git status")")" == 0 ]]'
 check "a heredoc body is not a command"                '[[ -z "$(recall "$(bash_call s1 "cat <<EOF\\n; git x\\nEOF")")" ]]'
@@ -78,8 +79,6 @@ check "a reply with a real time ends"                  '[[ "$(rc "${stop/3x/32}"
 failure='{"hook_event_name":"PostToolUseFailure","session_id":"s4","tool_name":"Bash","error":"CONNECT tunnel failed, response 403"}'
 check "a refused host is recalled after the failure"   'recall "${failure}" | grep -q "refused-host"'
 check "and as context for that event"                  'recall "${failure/s4/s4b}" | shape PostToolUseFailure'
-check "a session starts with the lessons in force"     'recall "{\"hook_event_name\":\"SessionStart\",\"session_id\":\"s5\"}" | grep -q "Lessons in force"'
-check "and as context for that event"                  'recall "{\"hook_event_name\":\"SessionStart\",\"session_id\":\"s5\"}" | shape SessionStart'
 check "a broken input never fails the hook"            '[[ "$(rc "not json")" == 0 ]]'
 for i in 1 2 3 4; do printf -- '---\ntrigger: bash zzf\n---\n# Four %s\n\nText.\n' "${i}" > "${L}/four-${i}.md"; done
 recall "$(bash_call s21 "zzf")" >/dev/null
@@ -151,7 +150,7 @@ check "the retrospective keeps what a person typed" 'out="$(mem retro "${T}")"; 
 
 echo
 echo "=== it is wired ==="
-for event in SessionStart PreToolUse UserPromptSubmit PostToolUseFailure Stop; do
+for event in PreToolUse UserPromptSubmit PostToolUseFailure Stop; do
   check "recall runs on ${event}" 'python3 -I -c "import json,sys; h=json.load(open(sys.argv[1]))[\"hooks\"][sys.argv[2]]; sys.exit(0 if any(\"recall.sh\" in x.get(\"command\",\"\") for g in h for x in g[\"hooks\"]) else 1)" "${STEWIE}/.claude/settings.json" '"${event}"
 done
 check "the hook code sits where sandboxed Bash cannot write" '[[ -f "${STEWIE}/.claude/hooks/lib/memory.py" && ! -e "${STEWIE}/tools/bin/memory.py" ]]'

@@ -2,8 +2,8 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
-MAX_LOADED=3878
-MAX_WORDS=4964
+MAX_LOADED=3846
+MAX_WORDS=6350
 
 tmp="$(mktemp -d)"; trap 'rm -rf "${tmp}"' EXIT
 canon="$(python3 -I -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])')"
@@ -15,9 +15,7 @@ git -C "${tmp}/canon" remote add origin "${canon}"
 start='{"session_id":"sizes","transcript_path":"/dev/null","source":"startup"}'
 hooks="$( { printf '%s' "${start}" | CLAUDE_PROJECT_DIR="${tmp}/canon" bash "${tmp}/canon/.claude/hooks/path.sh"
             printf '%s' "${start}" | CLAUDE_PROJECT_DIR="${tmp}/canon" STEWIE_OFFLINE=1 TS_ZONE=UTC \
-              STEWIE_CLOCK_REFERENCE_EPOCH="$(date -u +%s)" bash "${tmp}/canon/.claude/hooks/anchor.sh"
-            printf '{"session_id":"sizes","hook_event_name":"SessionStart","source":"startup"}' \
-              | CLAUDE_PROJECT_DIR="${tmp}/canon" bash "${tmp}/canon/.claude/hooks/recall.sh"; } 2>/dev/null)"
+              STEWIE_CLOCK_REFERENCE_EPOCH="$(date -u +%s)" bash "${tmp}/canon/.claude/hooks/anchor.sh"; } 2>/dev/null)"
 loaded=$(( $(wc -c < CLAUDE.md) + $(printf '%s\n' "${hooks}" | wc -c) ))
 
 words="$(files | tr '\0' '\n' | grep -E '\.md$' | grep -vE '^CHANGELOG\.md$' | tr '\n' '\0' | xargs -0 cat | wc -w)"

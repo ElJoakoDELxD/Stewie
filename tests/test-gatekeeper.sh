@@ -41,8 +41,8 @@ check "the criterion file exists"                         '[[ -s "${STEWIE}/.cla
 check "every judge has a model and the marked input"      'gk wired'
 check "a Stop judge that always runs"                     'gk stop'
 
-check "isolated local acts are left to code"            'grep -q "and you do not judge it, only when it runs isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
-check "elsewhere a local act is judged"                   'grep -q "judge the local act as you judge an outward one" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "isolated local acts are left to code"            'grep -q "is authorized unjudged only when it runs isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "elsewhere a local act is judged"                   'grep -q "Otherwise judge the local act as an outward one" "${STEWIE}/.claude/hooks/gatekeeper.md"'
 I="${STEWIE}/.claude/hooks/isolation.sh"; P="${TMP}/proj"; mkdir -p "${P}/.claude"; H="${TMP}/home"; mkdir -p "${H}/.claude"
 iso() { printf '{"hook_event_name":"%s"}' "${EV:-SessionStart}" | env -i PATH="${PATH}" HOME="${H}" CLAUDE_PROJECT_DIR="${P}" "$@" bash "${I}" | python3 -I -c 'import json,sys,os; o=json.load(sys.stdin)["hookSpecificOutput"]; print(o["hookEventName"] + " " + o["additionalContext"])'; }
 cloud="CLAUDE_CODE_REMOTE=true CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE=cloud_default"
@@ -66,8 +66,8 @@ check "the configured user folder is read, and an open filesystem is no sandbox"
 printf '{"sandbox":{"enabled":false}}' > "${P}/.claude/settings.local.json"
 check "any setting that turns it off wins"                '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
 check "it runs at session start and at each message"      'python3 -I -c "import json,sys; h=json.load(open(sys.argv[1]))[\"hooks\"]; sys.exit(0 if all(any(\"isolation.sh\" in x.get(\"command\",\"\") for g in h[e] for x in g[\"hooks\"]) for e in (\"SessionStart\",\"UserPromptSubmit\")) else 1)" "${S}"'
-check "and outward acts still need the principal"         'grep -q "An outward act is \*\*not authorized\*\*" "${STEWIE}/.claude/hooks/gatekeeper.md"'
-check "Stop counts local acts off the cloud"              'grep -q "also take the local acts that did not run isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "and outward acts still need the principal"         'grep -q "It is \*\*not authorized\*\*" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "Stop counts local acts off the cloud"              'grep -q "the local ones that did not run isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
 
 echo
 echo "=== pushes and gh api are judged ==="
