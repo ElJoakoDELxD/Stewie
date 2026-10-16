@@ -49,6 +49,9 @@ cloud="CLAUDE_CODE_REMOTE=true CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE=cloud_default
 check "a cloud container says so"                         '[[ "$(iso ${cloud})" == "SessionStart Stewie isolation: a cloud container." ]]'
 check "and says it again at each message"                 '[[ "$(EV=UserPromptSubmit iso ${cloud})" == "UserPromptSubmit Stewie isolation: a cloud container." ]]'
 check "this machine with no sandbox says so"              '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
+G="${STEWIE}/.claude/hooks/gatekeeper.md"
+check "the gatekeeper is told to read one principal line, not all" 'grep -q "Read only the latest such line, in three calls" "${G}" && grep -q "offset N−1, and take the line number L of the last line" "${G}" && grep -q "at offset L with limit 1" "${G}"'
+check "and told to read one isolation record, from the transcript" 'grep -q "read only it, in the same three calls" "${G}" && grep -q "None found means not isolated" "${G}" && ! grep -q "\.isolation" "${G}"'
 check "a remote flag alone is not a cloud"                '[[ "$(iso CLAUDE_CODE_REMOTE=true)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
 printf '{"env":{"CLAUDE_CODE_REMOTE":"true"}}' > "${P}/.claude/settings.json"
 check "a cloud the settings claim is not a cloud"         '[[ "$(iso ${cloud})" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'

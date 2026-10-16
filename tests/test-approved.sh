@@ -252,6 +252,21 @@ check "a copied transcript cannot spend an approval twice" '! input Bash "git pu
 check "parallel calls share one approval" '[[ "$(cat "${TMP}"/par.* | grep -c PASS)" == 1 ]]'
 
 echo
+big() { python3 -I -c 'import json; print(json.dumps({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "z", "content": "y" * 200000}]}}))' >> "${T}"; }
+line human "${APP}" > "${T}"; big
+check "the fixture holds a line longer than a block"     '(( $(wc -c < "${T}") > 200000 ))'
+want PASS  "git push origin custodian"
+line human "${APP}" > "${T}"; big; line human "next" >> "${T}"; big
+want BLOCK "git push origin custodian"
+printf '{"type":"user","origin":{"kind":"human"},"message":{"content":"%s"}}\n' "${APP}" > "${T}"
+want BLOCK "git push origin custodian"
+check "the transcript is read from its end, line by line" 'python3 -I -c "
+import importlib.util, io, sys
+s = importlib.util.spec_from_file_location(\"a\", sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+data = b\"one\ntwo long line\n\nthree\"
+sys.exit(0 if all(list(m.backwards(io.BytesIO(d), n)) == (d.split(b\"\n\")[::-1] if d else []) for d in (data, data + b\"\n\", b\"\", b\"\n\n\") for n in (1, 2, 5, 64)) else 1)" "${H}"'
+
+echo
 echo "=== it runs nothing the project can plant ==="
 L="${TMP}/lib"; mkdir -p "${L}"; cp "${STEWIE}/.claude/hooks/lib/approved.py" "${STEWIE}/.claude/hooks/lib/git_calls.py" "${L}/"
 python3 -I -c 'import importlib._bootstrap_external as b, importlib.util, os, sys

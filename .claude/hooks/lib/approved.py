@@ -352,10 +352,26 @@ def human(e):
     return a.get("type") == "queued_command" and (a.get("origin") or {}).get("kind") == "human"
 
 
+def backwards(f, size=65536):
+    end, tail = f.seek(0, 2), []
+    while end > 0:
+        start = max(0, end - size)
+        f.seek(start)
+        parts = f.read(end - start).split(b"\n")
+        end = start
+        if len(parts) == 1 and start > 0:
+            tail.append(parts[0])
+            continue
+        yield parts[-1] + b"".join(reversed(tail))
+        yield from reversed(parts[1:-1])
+        tail = [parts[0]]
+        if start == 0 and len(parts) > 1:
+            yield parts[0]
+
+
 def approval(path):
-    token = None
     with open(path, "rb") as f:
-        for n, raw in enumerate(f, 1):
+        for raw in backwards(f):
             if b"human" not in raw:
                 continue
             try:
@@ -366,8 +382,9 @@ def approval(path):
                 continue
             content = (e.get("message") or {}).get("content")
             ok = e.get("type") == "user" and isinstance(content, str) and APPROVAL.match(content)
-            token = (e.get("uuid") or "%s:%d" % (os.path.realpath(path), n)) if ok else None
-    return token
+            uuid = e.get("uuid")
+            return uuid if ok and isinstance(uuid, str) and uuid else None
+    return None
 
 
 def spend(token):
