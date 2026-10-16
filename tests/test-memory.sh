@@ -41,7 +41,7 @@ check "an empty frontmatter keeps the body"      'mem show knowledge/empty.md | 
 
 echo
 echo "=== what stopped being true is found ==="
-N="${TMP}/notes"; mkdir -p "${N}"
+N="${R}/scratch/notes"; mkdir -p "${N}"
 c1="$(git -C "${R}" rev-parse --short HEAD)"
 printf '# Notes\n\n- **Delegation.** The rule is `rules/ending-a-session.md`. (%s)\n- **Gone.** See `rules/no-such-rule.md`.\n' "${c1}" > "${N}/n.md"
 check "a fresh note is not stale"                '! mem stale --notes "${N}" | grep -q "Delegation"'
@@ -147,6 +147,66 @@ check "the same lesson twice is a repetition"    'mem repeats "${T}" | grep -q "
 check "a lesson after a failure counts once, as it is shown" 'mem repeats --min 1 "${T}" | grep -q " 1  lesson knowledge/lessons/refused-host.md"'
 check "a pointer counts once, as it is shown"    'mem repeats --min 1 "${T}" | grep -q " 1  pointer to rules/changing-the-system.md"'
 check "the retrospective keeps what a person typed" 'out="$(mem retro "${T}")"; grep -q "stop doing that" <<< "${out}" && grep -q "<3 that worked" <<< "${out}" && ! grep -q "a task ended\|command-name" <<< "${out}"'
+
+echo
+echo "=== memory has a core and categories, by a standard ==="
+X="${R}/memory/_example/memory"
+check "the template memory follows its schemas"  'mem check --memory "${X}" | grep -q "follows its schemas"'
+mkdir -p "${R}/scratch"; Q="${R}/scratch/lessons-as-memory"; mkdir -p "${Q}/lessons"; cp "${X}/core.md" "${Q}/"; cp "${X}/lessons/_schema.md" "${R}"/knowledge/lessons/*.md "${Q}/lessons/"
+check "the template lessons follow the lessons schema" 'mem check --memory "${Q}" | grep -q "follows its schemas"'
+Y="${R}/scratch/mem"; cp -R "${X}" "${Y}"
+printf -- '---\ntitle: Ask about the logo\nstatus: open\nowner: person\nopened: 2026-10-16\n---\nWhat was tried.\n' > "${Y}/open/logo.md"
+printf -- '---\ntitle: Use a blue palette\nstatus: current\ndate: 2026-10-16\nby: the person\n---\nWhy.\n' > "${Y}/decisions/palette.md"
+check "a filled memory follows its schemas"      'mem check --memory "${Y}" | grep -q "follows its schemas"'
+check "the index lists each entry by category"   'mem index --memory "${Y}" >/dev/null && grep -q "^## open" "${Y}/INDEX.md" && grep -q "\[Ask about the logo\](open/logo.md) · open · 2026-10-16 · person" "${Y}/INDEX.md" && grep -q "\[Use a blue palette\](decisions/palette.md)" "${Y}/INDEX.md"'
+printf 'keep\n' > "${TMP}/victim"; rm -f "${Y}/INDEX.md"; ln -s "${TMP}/victim" "${Y}/INDEX.md"
+mem index --memory "${Y}" >/dev/null
+check "the index never writes through a link"   '[[ "$(cat "${TMP}/victim")" == keep && -f "${Y}/INDEX.md" && ! -L "${Y}/INDEX.md" ]]'
+mkfifo "${Y}/open/pipe.md"
+check "a named pipe never hangs the index"       'timeout 10 python3 -I "${M}" index --memory "${Y}" >/dev/null 2>&1 && timeout 10 python3 -I "${M}" check --memory "${Y}" >/dev/null 2>&1; [[ $? -ne 124 ]]'
+rm -f "${Y}/open/pipe.md"; mem index --memory "${Y}" >/dev/null
+check "notes outside the copy are refused"       '! mem index --notes "${TMP}" >/dev/null 2>&1'
+check "a memory outside the copy is refused"     '! mem check --memory "${TMP}" >/dev/null 2>&1 && ! mem index --memory "${TMP}" >/dev/null 2>&1'
+printf -- '---\ntitle: x\nstatus: maybe\nowner: person\nopened: 16-10-2026\ncolour: red\n---\n' > "${Y}/open/bad.md"
+printf -- '---\nstatus: done\nowner: agent\nopened: 2026-10-16\n---\n' > "${Y}/open/closed.md"
+printf 'loose\n' > "${Y}/loose.md"
+out="$(mem check --memory "${Y}")"
+check "a value outside the schema is caught"     'grep -q "open/bad.md: status is maybe" <<< "${out}"'
+check "a field outside the schema is caught"     'grep -q "open/bad.md: colour is not in open/_schema.md" <<< "${out}"'
+check "a date in another format is caught"       'grep -q "open/bad.md: opened is not a real date" <<< "${out}"'
+check "a missing field is caught"                'grep -q "open/closed.md: needs title" <<< "${out}"'
+check "a closed item needs its date"             'grep -q "open/closed.md: a closed item needs closed" <<< "${out}"'
+check "a file outside the categories is caught"  'grep -q "loose.md: belongs in a category folder" <<< "${out}"'
+check "and the check fails"                      '! mem check --memory "${Y}" >/dev/null'
+printf -- '---\ntitle: x\nstatus: current\nstatus: bogus\ndate: 2026-02-31\n- https://a.example\n---\n' > "${Y}/decisions/dup.md"
+mkdir -p "${Y}/notes"; printf 'free\n' > "${Y}/notes/free.md"; printf 'x\n' > "${Y}/open/todo.txt"
+printf -- '---\ntitle: "Quoted"\nstatus: "current"\ndate: 2026-10-16\n---\n' > "${Y}/references/quoted.md"
+python3 -I -c 'print("---\ntitle: big\nstatus: current\ndate: 2026-10-16\n---\n" + "w " * 40000)' > "${Y}/references/big.md"
+out="$(mem check --memory "${Y}")"
+check "a key given twice is caught"              'grep -q "decisions/dup.md: status is given 2 times" <<< "${out}"'
+check "an impossible date is caught"             'grep -q "decisions/dup.md: date is not a real date" <<< "${out}"'
+check "a list on its own lines is explained"     'grep -q "a list goes on one line" <<< "${out}"'
+check "a folder with no schema is caught"        'grep -q "notes/: a folder with no _schema.md" <<< "${out}"'
+check "a file that is not markdown is caught"    'grep -q "open/todo.txt: not a .md file" <<< "${out}"'
+check "quoted values are read as values"         '! grep -q "references/quoted.md" <<< "${out}"'
+check "an entry too big to read says so"         'grep -q "references/big.md: cannot be read" <<< "${out}"'
+rm -rf "${Y}/notes" "${Y}/open/todo.txt" "${Y}/open/bad.md" "${Y}/open/closed.md" "${Y}/loose.md" "${Y}/decisions/dup.md" "${Y}/references/big.md"
+mem index --memory "${Y}" >/dev/null; printf -- '---\ntitle: Later\nstatus: current\ndate: 2026-10-16\n---\n' > "${Y}/references/later.md"
+check "a stale index is caught"                  'out="$(mem check --memory "${Y}")"; grep -q "INDEX.md: stale" <<< "${out}"'
+python3 -I -c 'print("---\nformat: 2\n---\n" + "w " * 40000)' > "${Y}/core.md"
+check "a core too big to read is caught"         'out="$(mem check --memory "${Y}")"; grep -q "core.md: cannot be read" <<< "${out}"'
+Z="${R}/scratch/real"; cp -R "${X}" "${Z}"; printf 'x\n' > "${Z}/clock.tsv"; : > "${Z}/open/.gitkeep"
+printf -- '---\ntitle: Two triggers\nstatus: current\ndate: 2026-10-16\ntrigger: bash zzx\ntrigger: prompt zzy\n---\n' > "${Z}/lessons/two.md"
+printf -- '---\ntitle: Logo\nstatus: current\ndate: 2026-10-16\nby: the person\n---\n' > "${Z}/decisions/logo (v2).md"
+mem index --memory "${Z}" >/dev/null
+check "a real agent memory can pass the check"   'mem check --memory "${Z}" | grep -q "follows its schemas"'
+check "an index link keeps the file name"        'grep -q "(decisions/logo%20%28v2%29.md)" "${Z}/INDEX.md"'
+rm "${Z}/open/_schema.md"; ln -s "${X}/open/_schema.md" "${Z}/open/_schema.md"
+check "a schema that cannot be read is caught"   'out="$(mem check --memory "${Z}")"; grep -q "open/_schema.md: cannot be read" <<< "${out}"'
+O="${R}/scratch/old"; mkdir -p "${O}"; printf -- '---\nformat: 1\n---\n# Memory\n' > "${O}/MEMORY.md"
+check "an old-format memory asks for consent"    'out="$(mem check --memory "${O}")"; grep -q "old format" <<< "${out}"'
+python3 -I -c 'print("---\nformat: 2\n---\n" + "word " * 301)' > "${Y}/core.md"
+check "a core over its words is caught"          'out="$(mem check --memory "${Y}")"; grep -q "core.md: 301 words, over 300" <<< "${out}"'
 
 echo
 echo "=== it is wired ==="

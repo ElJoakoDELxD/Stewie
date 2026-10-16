@@ -18,7 +18,7 @@ Every git call alone.
 4. Same version: say the copy is current, and stop. Otherwise, show the person the `CHANGELOG.md` entries in between: they say why.
 5. Resolve the pending proposals first (below).
 6. `git switch -c update-<latest> main`, then `git diff --binary refs/canon/v<this version> refs/canon/v<latest> --output=<tmp>/update.patch`, then `git apply --3way <tmp>/update.patch`. On a conflict, keep what a `pending/` record explains, and take the canon's version otherwise.
-7. If the `format:` of `memory/_example/memory/MEMORY.md` changed, say so. The release notes say how to migrate an agent's memory. That runs on the agent's own branch with the person's consent, never in this pull request.
+7. If the memory format changed (the `format:` of `memory/_example/memory/core.md`, or of `MEMORY.md` in releases before it), say so; new `_schema.md` files reach an agent only this way. The release notes say how to migrate an agent's memory. That runs on the agent's own branch with the person's consent, never in this pull request.
 8. Commit, push the branch, and open a pull request to `main`, or give the person its compare link. Squash-merge it on the person's yes alone.
 
 ## Land a fix an agent recorded

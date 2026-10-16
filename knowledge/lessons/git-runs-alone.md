@@ -1,4 +1,7 @@
 ---
+title: Git runs alone
+status: current
+date: 2026-10-10
 trigger: bash (?:&&|\|\||[;|&\n(]|\$\()\s*(?:\w+=\S*\s+)*git\s
 about: CLAUDE.md "Your own git calls"
 repeat: every

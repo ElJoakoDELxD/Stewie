@@ -18,7 +18,7 @@ if [[ "${1-}" == "--declare" ]]; then
         exit 1
       fi
       if [[ "$(stewie_attached "${root}")" != "${name}" ]]; then
-        echo "header: '${name}' is not attached at .agent/. Run 'attach ${name}' first, then read its agent file and memory index." >&2
+        echo "header: '${name}' is not attached at .agent/. Run 'attach ${name}' first, then read its agent file and .agent/memory/core.md." >&2
         exit 1
       fi
       if ! stewie_sandboxed "${root}"; then

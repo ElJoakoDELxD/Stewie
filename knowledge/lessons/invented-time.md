@@ -1,4 +1,7 @@
 ---
+title: A time not from the clock
+status: current
+date: 2026-10-10
 trigger: reply \b\d{1,2}:\d?x\b
 about: CLAUDE.md "copy its line verbatim"
 repeat: every

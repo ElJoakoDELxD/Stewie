@@ -89,7 +89,7 @@ filesystem does not survive it.
 
 Do not retry it, and do not commit a script that promises to run it later. Say
 plainly that the install cannot be made durable here, name what is needed and
-why, write it in .agent/memory/backlog.md under "The person", and hand it to a
+why, record it in .agent/memory/open/ with owner: person, and hand it to a
 session on the person's own machine.
 
 If this machine's home directory does persist, declare it once and this guard

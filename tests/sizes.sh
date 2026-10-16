@@ -18,7 +18,7 @@ hooks="$( { printf '%s' "${start}" | CLAUDE_PROJECT_DIR="${tmp}/canon" bash "${t
               STEWIE_CLOCK_REFERENCE_EPOCH="$(date -u +%s)" bash "${tmp}/canon/.claude/hooks/anchor.sh"; } 2>/dev/null)"
 loaded=$(( $(wc -c < CLAUDE.md) + $(printf '%s\n' "${hooks}" | wc -c) ))
 
-words="$(files | tr '\0' '\n' | grep -E '\.md$' | grep -vE '^CHANGELOG\.md$' | tr '\n' '\0' | xargs -0 cat | wc -w)"
+words="$(files | tr '\0' '\n' | grep -E '\.md$' | grep -vE '^CHANGELOG\.md$|^memory/_example/' | tr '\n' '\0' | xargs -0 cat | wc -w)"
 
 fail=0
 echo "loaded before the first turn: ${loaded} bytes (ceiling ${MAX_LOADED})"

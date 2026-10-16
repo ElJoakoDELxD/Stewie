@@ -8,6 +8,7 @@ import stat
 import subprocess
 import sys
 import time
+import urllib.parse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -249,9 +250,13 @@ def md_files(d):
 
 
 def notes_dirs(extra):
-    dirs = [Path(d) for d in extra]
+    dirs = []
+    for d in extra:
+        if os.path.realpath(d) != os.path.abspath(d) or not inside(d):
+            raise SystemExit(f"memory: {d} is outside the copy or reached through a link")
+        dirs.append(Path(d))
     agent = ROOT / ".agent" / "memory"
-    if agent.is_dir():
+    if agent.is_dir() and os.path.realpath(agent) == os.path.abspath(agent) and inside(agent):
         dirs.append(agent)
     return dirs
 
@@ -279,7 +284,9 @@ def build(extra=()):
         else:
             g.code(p, text)
     for rel, f in notes:
-        g.markdown(rel, f.read_text(errors="replace"), "note")
+        text = safe_read(f)
+        if text is not None:
+            g.markdown(rel, text, "note")
     g.link()
     return g
 
@@ -479,7 +486,7 @@ def safe_read(path, limit=65536):
         return None
     try:
         info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
+        if not stat.S_ISREG(info.st_mode) or info.st_size > limit or info.st_nlink != 1:
             return None
         if os.path.isdir("/proc/self/fd") and not inside(f"/proc/self/fd/{fd}"):
             return None
@@ -767,10 +774,176 @@ def cmd_retro(args):
     return 0
 
 
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+CORE_WORDS = 300
+
+
+def memory_dir(arg):
+    mem = Path(arg) if arg else ROOT / ".agent" / "memory"
+    if os.path.realpath(mem) != os.path.abspath(mem) or not inside(mem):
+        raise SystemExit(f"memory: {mem} is outside the copy or reached through a link")
+    return mem
+
+
+def text_of(path):
+    return safe_read(path) or ""
+
+
+def entries(mem):
+    out = []
+    for d in sorted(p for p in mem.iterdir() if p.is_dir() and not p.is_symlink()):
+        schema = d / "_schema.md"
+        if safe_read(schema) is None:
+            continue
+        rules = {k: [x.strip() for v in vs for x in v.split(",") if x.strip()] for k, vs in frontmatter(text_of(schema))[0].items()}
+        for f in md_files(d):
+            if f.name != "_schema.md":
+                out.append((d.name, rules, f))
+    return out
+
+
+UNREADABLE = "cannot be read: over 64 KiB, a link, or not a regular file"
+RECORDS = {"clock.tsv"}
+
+
+def real_date(value):
+    import datetime
+    try:
+        datetime.date.fromisoformat(value)
+        return bool(DATE.match(value))
+    except ValueError:
+        return False
+
+
+def problems(mem):
+    found = []
+    if (mem / "MEMORY.md").exists() and not (mem / "core.md").exists():
+        return ["this memory is in the old format (MEMORY.md): migrate it only with the person's consent, as CHANGELOG.md says"]
+    core = text_of(mem / "core.md") if (mem / "core.md").exists() else None
+    if not (mem / "core.md").exists():
+        found.append("core.md: missing")
+    elif core is None or safe_read(mem / "core.md") is None:
+        found.append("core.md: " + UNREADABLE)
+    else:
+        cmeta, cbody = frontmatter(core)
+        if (cmeta.get("format") or [""])[0] != "2":
+            found.append(f"core.md: format is {(cmeta.get('format') or ['missing'])[0]}, not 2")
+        words = len(cbody.split())
+        if words > CORE_WORDS:
+            found.append(f"core.md: {words} words, over {CORE_WORDS}; move what is not indispensable to a category")
+    for f in sorted(mem.iterdir()):
+        if f.name.startswith(".") or f.name in RECORDS:
+            continue
+        if f.is_symlink():
+            found.append(f"{f.name}: a link; memory holds files and folders only")
+        elif f.is_file() and f.name not in ("core.md", "INDEX.md", ".INDEX.md.new"):
+            found.append(f"{f.name}: belongs in a category folder")
+        elif f.is_dir() and not (f / "_schema.md").is_file():
+            found.append(f"{f.name}/: a folder with no _schema.md")
+        elif f.is_dir() and safe_read(f / "_schema.md") is None:
+            found.append(f"{f.name}/_schema.md: {UNREADABLE}")
+    cats = {cat for cat, _, _ in entries(mem)}
+    for cat in cats:
+        for base, subdirs, names in os.walk(mem / cat, followlinks=False):
+            for n in names + subdirs:
+                if n.startswith("."):
+                    continue
+                p = Path(base) / n
+                rel = p.relative_to(mem)
+                if p.is_symlink():
+                    found.append(f"{rel}: a link; memory holds files and folders only")
+                elif p.is_file() and not n.endswith(".md"):
+                    found.append(f"{rel}: not a .md file")
+    for cat, rules, f in entries(mem):
+        rel = f"{cat}/{f.relative_to(mem / cat)}"
+        text = safe_read(f)
+        if text is None:
+            found.append(f"{rel}: {UNREADABLE}")
+            continue
+        meta = frontmatter(text)[0]
+        allowed = set(rules.get("required", [])) | set(rules.get("optional", []))
+        for key, values in meta.items():
+            if key.startswith("-"):
+                found.append(f"{rel}: '{key}' is not key: value; a list goes on one line, comma-separated")
+            elif key not in allowed:
+                found.append(f"{rel}: {key} is not in {cat}/_schema.md")
+            elif len(values) > 1 and key not in rules.get("repeatable", []):
+                found.append(f"{rel}: {key} is given {len(values)} times")
+        for key in rules.get("required", []):
+            if not (meta.get(key) or [""])[0].strip("\"'"):
+                found.append(f"{rel}: needs {key}")
+        for key, values in rules.items():
+            value = (meta.get(key) or [""])[0].strip("\"'")
+            if key not in ("required", "optional", "repeatable") and value and value not in values:
+                found.append(f"{rel}: {key} is {value}, not one of {', '.join(values)}")
+        for key in ("date", "opened", "closed"):
+            value = (meta.get(key) or [""])[0].strip("\"'")
+            if value and not real_date(value):
+                found.append(f"{rel}: {key} is not a real date as YYYY-MM-DD")
+        if cat == "open" and (meta.get("status") or [""])[0].strip("\"'") in ("done", "dropped") and not meta.get("closed"):
+            found.append(f"{rel}: a closed item needs closed")
+    if not found and (mem / "INDEX.md").exists() and text_of(mem / "INDEX.md") != catalog_text(mem)[0]:
+        found.append("INDEX.md: stale; run memory index")
+    return list(dict.fromkeys(clean(p, 300) for p in found))
+
+
+def plain_text(text, limit):
+    return re.sub(r"[\[\]()<>`]", "", clean(text, limit))
+
+
+def write_index(mem, text):
+    d = os.open(mem, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        try:
+            os.unlink(".INDEX.md.new", dir_fd=d)
+        except FileNotFoundError:
+            pass
+        fd = os.open(".INDEX.md.new", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644, dir_fd=d)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(".INDEX.md.new", "INDEX.md", src_dir_fd=d, dst_dir_fd=d)
+    finally:
+        os.close(d)
+
+
+def catalog_text(mem):
+    lines = ["# Index", "", "Written by `memory index`; never edit it by hand.", ""]
+    groups = {}
+    for cat, _, f in entries(mem):
+        meta, body = frontmatter(text_of(f))
+        title = (meta.get("title") or [""])[0].strip("\"'") or next((heading(l).group(2) for l in unfenced(body.split("\n")) if heading(l)), f.stem)
+        bits = [plain_text(x.strip("\"'"), 40) for x in ((meta.get("status") or [""])[0], (meta.get("date") or meta.get("opened") or [""])[0], (meta.get("owner") or [""])[0]) if x]
+        groups.setdefault(cat, []).append(f"- [{plain_text(title, 120)}]({urllib.parse.quote(str(f.relative_to(mem)))})" + (" · " + " · ".join(bits) if bits else ""))
+    for cat in sorted(groups):
+        lines += [f"## {plain_text(cat, 60)}", ""] + groups[cat] + [""]
+    return "\n".join(lines).rstrip() + "\n", sum(len(v) for v in groups.values())
+
+
+def catalog(mem):
+    text, n = catalog_text(mem)
+    write_index(mem, text)
+    return n
+
+
 def cmd_index(args):
+    mem = memory_dir(args.memory)
+    if mem.is_dir() and not mem.is_symlink():
+        print(f"listed {catalog(mem)} entries in {mem / 'INDEX.md'}")
     n, e = index(args.notes)
     print(f"indexed {n} nodes, {e} edges into {STORE / 'graph.db'}")
     return 0
+
+
+def cmd_check(args):
+    mem = memory_dir(args.memory)
+    if not mem.is_dir():
+        print(f"no memory at {mem}")
+        return 1
+    found = problems(mem)
+    for p in found:
+        print(p)
+    print(f"{len(found)} problems" if found else "memory follows its schemas")
+    return 1 if found else 0
 
 
 def main(argv):
@@ -779,7 +952,11 @@ def main(argv):
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("index")
     p.add_argument("--notes", action="append", default=[])
+    p.add_argument("--memory")
     p.set_defaults(fn=cmd_index)
+    p = sub.add_parser("check")
+    p.add_argument("--memory")
+    p.set_defaults(fn=cmd_check)
     p = sub.add_parser("find")
     p.add_argument("terms", nargs="+")
     p.add_argument("--limit", type=int, default=5)

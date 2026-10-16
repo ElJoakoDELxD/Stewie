@@ -1,4 +1,7 @@
 ---
+title: Sizes before a commit
+status: current
+date: 2026-10-10
 trigger: bash ^\s*git\s+commit\b
 repeat: every
 ---

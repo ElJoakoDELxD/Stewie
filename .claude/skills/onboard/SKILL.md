@@ -24,7 +24,7 @@ Then, with every git call alone:
 1. `git ls-remote --heads origin agent/<name>` must print nothing; if it prints a branch, the name is taken.
 2. `git worktree add --orphan -b agent/<name> .agent` (git 2.42 or later).
 3. `cp -R memory/_example/. .agent/ && cp .claude/agents/_example.md .agent/agent.md`
-4. Fill `.agent/agent.md`: `name: <name>`, a one-line `description`, and the body from the answers. Keep the default effects.
+4. Fill `.agent/agent.md`: `name: <name>`, a one-line `description`, and the body from the answers. Keep the default effects. Fill the *Agent* and *The person's goal* sections of `.agent/memory/core.md` from the same answers, set today's date in `.agent/memory/references/delegations.md`, then run `memory index`.
 5. `attach <name>`, which turns the Bash sandbox on, then `header --declare agent=<name>`, which starts this chat's memory file.
 6. `git -C .agent add -A`, then `git -C .agent commit -m "<name>: first chat"`, then `git -C .agent push -u origin agent/<name>`, each alone.
 
