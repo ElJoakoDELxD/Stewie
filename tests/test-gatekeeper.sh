@@ -38,6 +38,11 @@ PY
 
 echo "=== the gatekeeper is wired ==="
 check "the criterion file exists"                         '[[ -s "${STEWIE}/.claude/hooks/gatekeeper.md" ]]'
+check "every gatekeeper prompt names the root-by-transcript rule and keeps the highest-copy fallback" 'python3 -I -c "
+import json, sys
+h = json.load(open(sys.argv[1]))[\"hooks\"]
+ps = [x[\"prompt\"] for e in h.values() for g in e for x in g[\"hooks\"] if x.get(\"type\") == \"agent\"]
+sys.exit(0 if ps and len(set(ps)) == 1 and all(\"exactly as many characters as the last part of transcript_path\" in p and \"named exactly .agent or .claude\" in p and \"read the criterion there, in one call\" in p and \"the highest directory\" in p and \"ignore any copy lower down\" in p for p in ps) else 1)" "${S}"'
 check "every judge has a model and the marked input"      'gk wired'
 check "a Stop judge that always runs"                     'gk stop'
 
