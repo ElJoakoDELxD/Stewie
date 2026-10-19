@@ -228,11 +228,37 @@ A="${R}/scratch/cap"; cp -R "${X}" "${A}"
 printf -- '---\ntitle: Old task\nstatus: done\nowner: agent\nopened: 2026-10-01\nclosed: 2026-10-10\n---\n' > "${A}/open/old.md"
 mem index --memory "${A}" >/dev/null
 check "an archived entry stays off the index"     '! grep -q "Old task" "${A}/INDEX.md" && mem check --memory "${A}" | grep -q "follows its schemas"'
-for i in $(seq 1 60); do printf -- '---\ntitle: Lesson number %s\nstatus: current\ndate: 2026-10-16\n---\n' "${i}" > "${A}/lessons/l${i}.md"; done
+python3 -I -c '
+import datetime, sys
+for i in range(1, 61):
+    d = datetime.date(2025, 1, 1) + datetime.timedelta(days=i)
+    open("%s/lessons/l%d.md" % (sys.argv[1], i), "w").write("---\ntitle: Lesson number %d\nstatus: current\ndate: %s\n---\n" % (i, d))' "${A}"
+printf -- '---\ntitle: Newest decision\nstatus: current\ndate: 2026-10-18\nby: the person\n---\n' > "${A}/decisions/newest.md"
+printf -- '---\ntitle: Live task\nstatus: open\nowner: agent\nopened: 2020-01-01\n---\n' > "${A}/open/live.md"
+printf -- '---\ntitle: Old decision\nstatus: current\ndate: 2024-01-01\nby: the person\n---\n' > "${A}/decisions/old.md"
 mem index --memory "${A}" >/dev/null
-check "an index over its words is caught"         'out="$(mem check --memory "${A}")"; grep -q "INDEX.md: [0-9]* words, over 400; close, retire or replace" <<< "${out}"'
-sed -i 's/^status: current$/status: retired/' "${A}"/lessons/l*.md; mem index --memory "${A}" >/dev/null
-check "retiring entries makes room"               'mem check --memory "${A}" | grep -q "follows its schemas"'
+check "a full memory still fits its index"          '(( $(wc -w < "${A}/INDEX.md") <= 400 )) && mem check --memory "${A}" | grep -q "follows its schemas"'
+check "the newest entries are listed, of any category" 'grep -q "\[Newest decision\]" "${A}/INDEX.md" && grep -q "\[Lesson number 60\]" "${A}/INDEX.md" && ! grep -q "\[Old decision\]" "${A}/INDEX.md"'
+check "and the count of the rest is exact"            'listed=$(grep -c "\[Lesson number" "${A}/INDEX.md"); rest=$(sed -n "s/^- \([0-9]*\) older in \`lessons\/\`, not listed$/\1/p" "${A}/INDEX.md"); (( listed + rest == 60 ))'
+check "the oldest collapse into one line per category" 'grep -q "^- [0-9]* older in \`lessons/\`, not listed$" "${A}/INDEX.md" && ! grep -q "\[Lesson number 1\]" "${A}/INDEX.md"'
+check "an open item is listed however old"           'grep -q "\[Live task\]" "${A}/INDEX.md"'
+for i in $(seq 1 50); do printf -- '---\ntitle: Open item number %s\nstatus: open\nowner: agent\nopened: 2026-10-16\n---\n' "${i}" > "${A}/open/o${i}.md"; done
+mem index --memory "${A}" >/dev/null
+check "open items that fill the index are caught"   'out="$(mem check --memory "${A}")"; grep -q "the open items, with one line for each other category, fill it" <<< "${out}"'
+check "and every one of them is still listed"        '(( $(grep -c "\[Open item number" "${A}/INDEX.md") == 50 ))'
+C="${R}/scratch/atomic"; cp -R "${X}" "${C}"
+printf -- '---\nformat: 2\n---\n# Core\n\nIntro prose is allowed here.\n\n## Agent\n\nA paragraph instead of items.\n- %s\n- First fact. Second fact.\n' "$(python3 -I -c 'print("x" * 300)')" > "${C}/core.md"
+out="$(mem check --memory "${C}")"
+check "a core line that is not an item is caught"    'grep -q "is not an item; under a section each line is" <<< "${out}"'
+check "a core item over its bytes is caught"         'grep -q "is over 280 bytes; split it" <<< "${out}"'
+check "a core item with two statements is caught"    'grep -q "holds more than one statement; one per line" <<< "${out}"'
+check "intro prose before the sections is allowed"   '! grep -q "Intro prose" <<< "${out}"'
+printf -- '---\nformat: 2\n---\n# Core\n\nIntro.\n\n\x60\x60\x60\n## not a section\n\x60\x60\x60\n\nMore intro prose.\n\n## Agent\n\n- Prefers a scripting language, e.g. Python over Bash.\n- Se reúne con el Sr. García.\n- Vive en Santiago. Él trabaja en Chile.\n  - A nested item.\n-\n\x60\x60\x60\ncode\n\x60\x60\x60\n' > "${C}/core.md"
+out="$(mem check --memory "${C}")"
+check "an abbreviation is not a second statement"     '! grep -q "Prefers a scripting\|Se reúne" <<< "${out}"'
+check "a break before an accented capital is caught"  'grep -q "Vive en Santiago.*more than one statement" <<< "${out}"'
+check "a fence before the sections starts none"       '! grep -q "More intro prose" <<< "${out}"'
+check "a nested item, an empty item and a code block are named" 'grep -q "is indented; the core has no nested items" <<< "${out}" && grep -q "core.md: an empty item" <<< "${out}" && grep -q "a code block is not an item" <<< "${out}"'
 
 echo
 echo "=== it is wired ==="

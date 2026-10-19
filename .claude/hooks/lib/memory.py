@@ -796,6 +796,22 @@ def cmd_retro(args):
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CORE_WORDS = 300
 INDEX_WORDS = 400
+ITEM_BYTES = 280
+BREAK = re.compile(r"(\S*)[.!?][\"'”’)\]]*\s+([¿¡]|\S)")
+ABBREVIATIONS = {"vs", "dr", "dra", "mr", "mrs", "ms", "sr", "sra", "srta", "st", "jr", "prof", "etc", "ej", "no", "nº", "approx", "cf", "fig"}
+
+
+def statements(item):
+    text = re.sub(r"`[^`]*`", "x", item)
+    n = 1
+    for m in BREAK.finditer(text):
+        word, after = m.group(1).strip("\"'“‘(["), m.group(2)
+        if not (after in "¿¡" or after[0].isupper()):
+            continue
+        if len(word) <= 1 or "." in word or word.lower() in ABBREVIATIONS:
+            continue
+        n += 1
+    return n
 
 
 def memory_dir(arg):
@@ -851,6 +867,31 @@ def problems(mem):
         words = len(cbody.split())
         if words > CORE_WORDS:
             found.append(f"core.md: {words} words, over {CORE_WORDS}; move what is not indispensable to a category")
+        section, fenced = False, False
+        for line in cbody.split("\n"):
+            s = line.rstrip()
+            if FENCE.match(s):
+                fenced = not fenced
+                if section:
+                    found.append("core.md: a code block is not an item; move it to a category")
+                continue
+            if fenced:
+                continue
+            if s.startswith("## "):
+                section = True
+            if not section or not s.strip() or heading(s.strip()):
+                continue
+            item = s[2:].strip() if s.startswith("- ") else None
+            if s[:1].isspace():
+                found.append(f"core.md: '{s.strip()[:40]}' is indented; the core has no nested items")
+            elif item is None and s.strip() in ("-", "*"):
+                found.append("core.md: an empty item")
+            elif item is None:
+                found.append(f"core.md: '{s.strip()[:40]}' is not an item; under a section each line is '- ' and one statement")
+            elif len(s.encode()) > ITEM_BYTES:
+                found.append(f"core.md: '{item[:40]}' is over {ITEM_BYTES} bytes; split it or move the detail to a category")
+            elif statements(item) > 1:
+                found.append(f"core.md: '{item[:40]}' holds more than one statement; one per line")
     for f in sorted(mem.iterdir()):
         if f.name.startswith(".") or f.name in RECORDS:
             continue
@@ -904,7 +945,7 @@ def problems(mem):
             found.append(f"{rel}: a closed item needs closed")
     words = len(catalog_text(mem)[0].split())
     if words > INDEX_WORDS:
-        found.append(f"INDEX.md: {words} words, over {INDEX_WORDS}; close, retire or replace entries to make room")
+        found.append(f"INDEX.md: {words} words, over {INDEX_WORDS}: the open items, with one line for each other category, fill it; close or drop some before opening more")
     if not found and (mem / "INDEX.md").exists() and text_of(mem / "INDEX.md") != catalog_text(mem)[0]:
         found.append("INDEX.md: stale; run memory index")
     return list(dict.fromkeys(clean(p, 300) for p in found))
@@ -930,18 +971,36 @@ def write_index(mem, text):
 
 
 def catalog_text(mem):
-    lines = ["# Index", "", "Written by `memory index`; never edit it by hand.", ""]
-    groups = {}
+    live = {}
     for cat, rules, f in entries(mem):
         meta, body = frontmatter(text_of(f))
         if (meta.get("status") or [""])[0].strip("\"'") in rules.get("archived", []):
             continue
         title = (meta.get("title") or [""])[0].strip("\"'") or next((heading(l).group(2) for l in unfenced(body.split("\n")) if heading(l)), f.stem)
-        bits = [plain_text(x.strip("\"'"), 40) for x in ((meta.get("status") or [""])[0], (meta.get("date") or meta.get("opened") or [""])[0], (meta.get("owner") or [""])[0]) if x]
-        groups.setdefault(cat, []).append(f"- [{plain_text(title, 120)}]({urllib.parse.quote(str(f.relative_to(mem)))})" + (" · " + " · ".join(bits) if bits else ""))
-    for cat in sorted(groups):
-        lines += [f"## {plain_text(cat, 60)}", ""] + groups[cat] + [""]
-    return "\n".join(lines).rstrip() + "\n", sum(len(v) for v in groups.values())
+        when = (meta.get("date") or meta.get("opened") or [""])[0].strip("\"'")
+        bits = [plain_text(x.strip("\"'"), 40) for x in ((meta.get("status") or [""])[0], when, (meta.get("owner") or [""])[0]) if x]
+        line = f"- [{plain_text(title, 120)}]({urllib.parse.quote(str(f.relative_to(mem)))})" + (" · " + " · ".join(bits) if bits else "")
+        live.setdefault(cat, []).append((when if real_date(when) else "", str(f.relative_to(mem)), line))
+
+    def render(shown):
+        lines = ["# Index", "", "Written by `memory index`, newest first; never edit it by hand.", ""]
+        for cat in sorted(live):
+            rest = len(live[cat]) - len(shown[cat])
+            lines += [f"## {plain_text(cat, 60)}", ""] + [e[2] for e in shown[cat]]
+            lines += [f"- {rest} older in `{plain_text(cat, 60)}/`, not listed"] if rest else []
+            lines.append("")
+        return "\n".join(lines).rstrip() + "\n"
+
+    def newest(items, when=lambda x: x[0][0], path=lambda x: x[0][1]):
+        return sorted(sorted(items, key=path), key=when, reverse=True)
+
+    shown = {cat: [e for e, _ in newest((e, cat) for e in v)] if cat == "open" else [] for cat, v in live.items()}
+    for e, cat in newest((e, cat) for cat, v in live.items() if cat != "open" for e in v):
+        shown[cat].append(e)
+        if len(render(shown).split()) > INDEX_WORDS:
+            shown[cat].pop()
+            break
+    return render(shown), sum(len(v) for v in shown.values())
 
 
 def catalog(mem):

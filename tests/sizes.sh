@@ -2,7 +2,7 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
-MAX_START=6728
+MAX_START=6714
 BUDGET_WORDS=7000
 MAX_RULE=200
 MAX_TOOL=600
