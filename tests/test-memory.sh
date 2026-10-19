@@ -31,6 +31,7 @@ check "the index builds"                         'mem index | grep -q "indexed"'
 check "a rule of CLAUDE.md is its own node"      'mem find git calls run alone --limit 1 | head -1 | grep -q "^CLAUDE.md#always/"'
 check "a hook knows who wires and tests it"      'out="$(mem show .claude/hooks/guard-main.sh)"; grep -q "← wires .claude/settings.json#" <<< "${out}" && grep -q "← tests tests/test-guard-main.sh" <<< "${out}"'
 check "a query returns a short digest"           '(( $(mem find gatekeeper criterion | wc -c) < 2000 ))'
+check "a gatekeeper prompt wires its criterion, not what it mentions" 'out="$(mem show ".claude/settings.json#stop-1-2")"; grep -q "→ wires .claude/hooks/gatekeeper.md" <<< "${out}" && ! grep -q "→ wires .claude/hooks/lib/approved.py" <<< "${out}"'
 check "an unknown query says so"                 '! mem find zzzqqq >/dev/null'
 printf '# Zebracorn\n\nNew.\n' > "${R}/knowledge/zebra.md"
 check "a new file is found without an index"     'mem find zebracorn | grep -q "knowledge/zebra.md"'

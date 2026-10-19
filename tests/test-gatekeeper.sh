@@ -38,11 +38,20 @@ PY
 
 echo "=== the gatekeeper is wired ==="
 check "the criterion file exists"                         '[[ -s "${STEWIE}/.claude/hooks/gatekeeper.md" ]]'
-check "every gatekeeper prompt names the root-by-transcript rule and keeps the highest-copy fallback" 'python3 -I -c "
+check "every gatekeeper carries its criterion in its prompt, word for word" 'python3 -I "${STEWIE}/tools/gatekeeper-prompt.py" --check >/dev/null'
+check "and the bench sees it without the script"          'python3 -I -c "
 import json, sys
-h = json.load(open(sys.argv[1]))[\"hooks\"]
-ps = [x[\"prompt\"] for e in h.values() for g in e for x in g[\"hooks\"] if x.get(\"type\") == \"agent\"]
-sys.exit(0 if ps and len(set(ps)) == 1 and all(\"exactly as many characters as the last part of transcript_path\" in p and \"named exactly .agent or .claude\" in p and \"read the criterion there, in one call\" in p and \"the highest directory\" in p and \"ignore any copy lower down\" in p for p in ps) else 1)" "${S}"'
+c = open(sys.argv[2], encoding=\"utf-8\").read().strip()
+ps = [h[\"prompt\"] for e in json.load(open(sys.argv[1]))[\"hooks\"].values() for g in e for h in g[\"hooks\"] if h.get(\"type\") == \"agent\"]
+ok = lambda p: p.split(\"<criterion>\\n\", 1)[1].split(\"\\n</criterion>\", 1)[0] == c and p.index(\"</criterion>\") < p.index(\"<hook-input>\") and p.count(\"\$ARGUMENTS\") == 1
+sys.exit(0 if len(ps) == 6 and all(ok(p) for p in ps) else 1)" "${S}" "${STEWIE}/.claude/hooks/gatekeeper.md"'
+check "and none is told to look for it"                  '! grep -q "highest directory\|the criterion was not found" "${S}"'
+mkdir -p "${TMP}/drift"; cp -R "${STEWIE}/.claude" "${STEWIE}/tools" "${TMP}/drift/"
+printf "\nA drifted line.\n" >> "${TMP}/drift/.claude/hooks/gatekeeper.md"
+D="${TMP}/drift/tools/gatekeeper-prompt.py"
+check "a criterion edited without its prompts is caught" 'out="$(python3 -I "${D}" --check)"; [[ $? -eq 1 ]] && grep -q "out of date" <<< "${out}"'
+check "writing the prompts brings them back in line"     'python3 -I "${D}" | grep -q "wrote 6" && python3 -I "${D}" --check | grep -q "match" && grep -q "A drifted line." "${TMP}/drift/.claude/settings.json"'
+check "a mistyped option writes nothing"                 'cp "${TMP}/drift/.claude/settings.json" "${TMP}/before.json"; ! python3 -I "${D}" --chek >/dev/null && cmp -s "${TMP}/before.json" "${TMP}/drift/.claude/settings.json"'
 check "every judge has a model and the marked input"      'gk wired'
 check "a Stop judge that always runs"                     'gk stop'
 

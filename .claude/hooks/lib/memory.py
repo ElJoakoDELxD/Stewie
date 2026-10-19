@@ -219,7 +219,8 @@ class Graph:
                     cond = f" if {h['if']}" if h.get("if") else ""
                     title = f"{event} {group.get('matcher') or '*'}{cond}: {what}"[:160]
                     nid = self.node(f"{path}#{slug(event)}-{gi + 1}-{hi + 1}", "wiring", path, 1, title, h.get("prompt", "")[:300], fid)
-                    for r in self.refs(h.get("command", "") + " " + h.get("prompt", "")):
+                    own = h.get("prompt", "").partition("\n<criterion>\n")[0]
+                    for r in self.refs(h.get("command", "") + " " + own):
                         self.edges.add((nid, r, "wires"))
 
     def link(self):
