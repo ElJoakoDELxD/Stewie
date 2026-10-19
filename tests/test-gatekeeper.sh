@@ -46,6 +46,8 @@ ps = [h[\"prompt\"] for e in json.load(open(sys.argv[1]))[\"hooks\"].values() fo
 ok = lambda p: p.split(\"<criterion>\\n\", 1)[1].split(\"\\n</criterion>\", 1)[0] == c and p.index(\"</criterion>\") < p.index(\"<hook-input>\") and p.count(\"\$ARGUMENTS\") == 1
 sys.exit(0 if len(ps) == 6 and all(ok(p) for p in ps) else 1)" "${S}" "${STEWIE}/.claude/hooks/gatekeeper.md"'
 check "and none is told to look for it"                  '! grep -q "highest directory\|the criterion was not found" "${S}"'
+check "every gatekeeper runs on the more capable model"   'python3 -I -c "import json,sys; h=[x for e in json.load(open(sys.argv[1]))[\"hooks\"].values() for g in e for x in g[\"hooks\"] if x.get(\"type\")==\"agent\"]; sys.exit(0 if len(h)==6 and all(x.get(\"model\")==\"claude-sonnet-5-5\" for x in h) else 1)" "${S}"'
+check "and is told to spend only what the answer needs"  'G2="${STEWIE}/.claude/hooks/gatekeeper.md"; grep -q "^## Spend only what is needed" "${G2}" && grep -q "stop at the first answer" "${G2}" && grep -q "Make no call the answer does not need" "${G2}" && grep -q "Never list every hit or read a whole file at once" "${G2}" && grep -q "If K is 0 there is no block yet" "${G2}"'
 mkdir -p "${TMP}/drift"; cp -R "${STEWIE}/.claude" "${STEWIE}/tools" "${TMP}/drift/"
 printf "\nA drifted line.\n" >> "${TMP}/drift/.claude/hooks/gatekeeper.md"
 D="${TMP}/drift/tools/gatekeeper-prompt.py"
