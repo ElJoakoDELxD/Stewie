@@ -253,10 +253,10 @@ check "a core line that is not an item is caught"    'grep -q "is not an item; u
 check "a core item over its bytes is caught"         'grep -q "is over 280 bytes; split it" <<< "${out}"'
 check "a core item with two statements is caught"    'grep -q "holds more than one statement; one per line" <<< "${out}"'
 check "intro prose before the sections is allowed"   '! grep -q "Intro prose" <<< "${out}"'
-printf -- '---\nformat: 2\n---\n# Core\n\nIntro.\n\n\x60\x60\x60\n## not a section\n\x60\x60\x60\n\nMore intro prose.\n\n## Agent\n\n- Prefers a scripting language, e.g. Python over Bash.\n- Se reúne con el Sr. García.\n- Vive en Santiago. Él trabaja en Chile.\n  - A nested item.\n-\n\x60\x60\x60\ncode\n\x60\x60\x60\n' > "${C}/core.md"
+printf -- '---\nformat: 2\n---\n# Core\n\nIntro.\n\n\x60\x60\x60\n## not a section\n\x60\x60\x60\n\nMore intro prose.\n\n## Agent\n\n- Prefers a scripting language, e.g. Python over Bash.\n- Se reúne con el Sr. García.\n- Llegó el lunes. Él lo revisa hoy.\n  - A nested item.\n-\n\x60\x60\x60\ncode\n\x60\x60\x60\n' > "${C}/core.md"
 out="$(mem check --memory "${C}")"
 check "an abbreviation is not a second statement"     '! grep -q "Prefers a scripting\|Se reúne" <<< "${out}"'
-check "a break before an accented capital is caught"  'grep -q "Vive en Santiago.*more than one statement" <<< "${out}"'
+check "a break before an accented capital is caught"  'grep -q "Llegó el lunes.*more than one statement" <<< "${out}"'
 check "a fence before the sections starts none"       '! grep -q "More intro prose" <<< "${out}"'
 check "a nested item, an empty item and a code block are named" 'grep -q "is indented; the core has no nested items" <<< "${out}" && grep -q "core.md: an empty item" <<< "${out}" && grep -q "a code block is not an item" <<< "${out}"'
 
