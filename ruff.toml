@@ -1,0 +1,8 @@
+# Explicit, so that a newer ruff cannot move the bar by itself; shellcheck comes
+# from the CI runner image and is not pinned.
+target-version = "py39"
+force-exclude = true
+extend-exclude = [".claude/worktrees", "memory/_example/tools"]
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

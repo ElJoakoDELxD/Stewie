@@ -7,4 +7,4 @@ repeat: every
 ---
 # Sizes before a commit
 
-`tests/run.sh` does not run `tests/sizes.sh`; CI does. Run both before committing, and bring the person the exact counts when a ceiling moves.
+`tests/run.sh` does not run `tests/sizes.sh` or `tests/lint.sh`; CI does. Run all three before committing, and bring the person the exact counts when a ceiling moves.

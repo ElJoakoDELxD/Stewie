@@ -6,6 +6,7 @@ source "${here}/lib/command.sh"
 source "${here}/lib/chat.sh"
 
 input="$(cat)"
+tool="" cwd="" path="" command=""
 eval "$(printf '%s' "${input}" | python3 -I -c '
 import json, shlex, sys
 d = json.load(sys.stdin)

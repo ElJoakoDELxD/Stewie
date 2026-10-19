@@ -4,7 +4,7 @@ source "$(dirname "$0")/lib.sh"
 bin="${STEWIE}/tools/bin"
 now="$(date -u +%s)"
 export STEWIE_CLOCK_RECORD="${TMP}/methods.tsv" STEWIE_CLOCK_SIGNATURE="Test/bench" STEWIE_CLOCK_REFERENCE_EPOCH="${now}"
-cd "${TMP}"
+cd "${TMP}" || exit 1
 
 out="$(TS_ZONE=UTC "${bin}/clock" 2>"${TMP}/err")"
 check "format" '[[ "${out}" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}\ [0-9]{2}:[0-9]{2}\ \+00$ ]]'
@@ -28,7 +28,7 @@ out="$(cd "${TMP}" && TS_ZONE=UTC "${bin}/clock" 2>&1)"
 check "no agent attached: nothing is saved" '[[ "${out}" != *saved* ]]'
 
 fixture "${TMP}/p" scout
-cd "${TMP}/p"
+cd "${TMP}/p" || exit 1
 "${bin}/attach" scout >/dev/null 2>&1
 tr="${TMP}/t.jsonl"; : > "${tr}"
 export STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a

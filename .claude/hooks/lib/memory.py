@@ -127,7 +127,7 @@ class Graph:
         meta, body = frontmatter(text)
         offset = text[:len(text) - len(body)].count("\n")
         lines = body.split("\n")
-        first = next((heading(l) for l in unfenced(lines) if heading(l)), None)
+        first = next((heading(line) for line in unfenced(lines) if heading(line)), None)
         title = meta.get("title", [None])[0] or (first.group(2) if first and len(first.group(1)) == 1 else path)
         fid = self.node(path, meta.get("kind", [kind])[0], path, 1, title, "", None, meta)
         stack, cur, intro, item, rows = [(0, fid)], fid, [], None, 0
@@ -200,7 +200,7 @@ class Graph:
                 self.edges.add((fid, self.resolve(m.group(1)), "about"))
 
     def code(self, path, text):
-        body = "\n".join(l.strip() for l in text.split("\n") if CODELINE.search(l))[:4000]
+        body = "\n".join(line.strip() for line in text.split("\n") if CODELINE.search(line))[:4000]
         fid = self.node(path, "code", path, 1, path, body)
         for r in self.refs(text):
             if r != path:
@@ -590,14 +590,14 @@ def live_line(about):
 
 
 def title_of(lesson):
-    return next((heading(l).group(2) for l in unfenced(lesson["body"].split("\n")) if heading(l)), lesson["path"])[:120]
+    return next((heading(line).group(2) for line in unfenced(lesson["body"].split("\n")) if heading(line)), lesson["path"])[:120]
 
 
 def message(lesson, count):
     meta, body = lesson["meta"], lesson["body"]
     head = title_of(lesson)
     paragraphs = [p for p in body.split("\n\n") if p.strip() and not heading(p.strip().split("\n")[0])]
-    text = " ".join(l.strip() for l in (paragraphs[0] if paragraphs else "").split("\n"))[:400]
+    text = " ".join(line.strip() for line in (paragraphs[0] if paragraphs else "").split("\n"))[:400]
     lines = [f"Stewie memory, {lesson['path']}: {head}" + (f" (recalled {count}× before)" if count else "")]
     for about in meta.get("about", []):
         live = live_line(about)
@@ -611,7 +611,7 @@ def message(lesson, count):
 
 
 def failure(name, tin, text):
-    first = next((l for l in text.split("\n") if l.strip() and not l.startswith("Exit code")), text[:80])
+    first = next((line for line in text.split("\n") if line.strip() and not line.startswith("Exit code")), text[:80])
     first = re.sub(r"(/[\w.@-]+)+|\b\d+\b|'[^']*'|\"[^\"]*\"", "_", first)[:90]
     prog = (str(tin.get("command", "")).split() or [""])[0] if name == "Bash" else ""
     return f"{name} {prog}: {first}".strip()
@@ -674,9 +674,9 @@ def cmd_recall(args):
         session = data.get("session_id", "")
         hits = past_hits(session)
         ls = lessons()
-        found = [l for l in ls if enforced(l, event) and safely_fired(l, event, data)]
+        found = [lesson for lesson in ls if enforced(lesson, event) and safely_fired(lesson, event, data)]
         if not found:
-            found = [l for l in ls if not enforced(l, event) and safely_fired(l, event, data)]
+            found = [lesson for lesson in ls if not enforced(lesson, event) and safely_fired(lesson, event, data)]
         agent = str(data.get("agent_id") or "")
         said, notes, deny = [], [], False
         for lesson in found:
@@ -976,7 +976,7 @@ def catalog_text(mem):
         meta, body = frontmatter(text_of(f))
         if (meta.get("status") or [""])[0].strip("\"'") in rules.get("archived", []):
             continue
-        title = (meta.get("title") or [""])[0].strip("\"'") or next((heading(l).group(2) for l in unfenced(body.split("\n")) if heading(l)), f.stem)
+        title = (meta.get("title") or [""])[0].strip("\"'") or next((heading(line).group(2) for line in unfenced(body.split("\n")) if heading(line)), f.stem)
         when = (meta.get("date") or meta.get("opened") or [""])[0].strip("\"'")
         bits = [plain_text(x.strip("\"'"), 40) for x in ((meta.get("status") or [""])[0], when, (meta.get("owner") or [""])[0]) if x]
         line = f"- [{plain_text(title, 120)}]({urllib.parse.quote(str(f.relative_to(mem)))})" + (" · " + " · ".join(bits) if bits else "")

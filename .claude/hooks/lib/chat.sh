@@ -87,5 +87,6 @@ stewie_identity() {
   elif [[ -f "${root}/.agent/chats/${STEWIE_CHAT_ID}.md" ]]; then
     STEWIE_AGENT="$(stewie_attached "${root}")"
   fi
+  export STEWIE_WORKPLACE
   STEWIE_WORKPLACE="$(printf '%s\n' "${marks}" | sed -n 's/^STEWIE_DECLARED workplace=\([^ ]*\) .*/\1/p' | tail -1)"
 }

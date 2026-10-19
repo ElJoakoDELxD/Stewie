@@ -22,6 +22,12 @@ jobs:
       - name: Size ratchet
         run: bash tests/sizes.sh
 
+      - name: Lint
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/lint"
+          "${RUNNER_TEMP}/lint/bin/pip" install --quiet --require-hashes --only-binary=:all: -r tests/lint-requirements.txt
+          PATH="${RUNNER_TEMP}/lint/bin:${PATH}" bash tests/lint.sh
+
       - name: Shipped binaries come from their packages
         run: bash tests/verify-sources.sh
 

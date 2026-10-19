@@ -1,0 +1,4 @@
+# ruff 0.15.8 from PyPI: manylinux_2_17_x86_64 and musllinux_1_2_x86_64 wheels.
+ruff==0.15.8 \
+    --hash=sha256:0f29b989a55572fb885b77464cf24af05500806ab4edf9a0fd8977f9759d85b1 \
+    --hash=sha256:75e5cd06b1cf3f47a3996cfc999226b19aa92e7cce682dcd62f80d7035f98f49

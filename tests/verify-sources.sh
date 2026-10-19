@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 work="$(mktemp -d)"; trap 'rm -rf "${work}"' EXIT
 POOL="http://archive.ubuntu.com/ubuntu/pool/"
 fail=0

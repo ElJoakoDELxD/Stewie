@@ -6,6 +6,8 @@ One entry per release, newest first.
 
 An agent's memory is a core and categories. `memory/core.md` and `INDEX.md` are what every chat reads. The core is read whole and never compressed: at most 300 words, each item one line holding one statement, at most 280 bytes. The index fits itself to 400 words: open items always, then the newest entries of any category, the older ones counted in a line per category; everything else lives one file per item in `lessons/`, `decisions/`, `open/`, `references/` or `projects/`, each following its folder's `_schema.md`. `memory check` holds every file to its schema, and `memory index` writes `INDEX.md`, which lists only live entries and nobody edits by hand; `memory check` fails when open items alone fill it. A lesson whose error happens a third time is escalated to `.claude/hooks/lessons/`, which blocks the call; `git-runs-alone` is the first.
 
+The code is held to a lint bar in CI: `tests/lint.sh` runs shellcheck at warning level on every `.sh` file, every script in `tools/bin` and the shipped socat wrapper, and ruff on every Python file, and fails on any finding. ruff is pinned by hash in `tests/lint-requirements.txt`; shellcheck comes from the runner. The one rule set aside, unused variables in the benches, says why in `tests/.shellcheckrc`.
+
 **Migrating an agent's memory (format 1 to 2)**, on the agent's own branch and only with the person's consent:
 
 1. Copy `memory/_example/memory/` from this release into `.agent/memory/`, without overwriting files that exist.
