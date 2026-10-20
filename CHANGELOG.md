@@ -8,6 +8,8 @@ An agent's memory is a core and categories. `memory/core.md` and `INDEX.md` are 
 
 The code is held to a lint bar in CI: `tests/lint.sh` runs shellcheck at warning level on every `.sh` file, every script in `tools/bin` and the shipped socat wrapper, and ruff on every Python file, and fails on any finding. ruff is pinned by hash in `tests/lint-requirements.txt`; shellcheck comes from the runner. The one rule set aside, unused variables in the benches, says why in `tests/.shellcheckrc`.
 
+The gatekeeper is calibrated. `tests/gatekeeper-cases/` holds 22 cases with the verdict each should get, built in the transcript format Claude Code writes, and `record.json` holds what the gatekeeper's prompt and model answered to each. The bench fails when the record is of another prompt or model, when a recorded verdict is not what its answer says, or when missed blocks pass 15% of the cases that should block or false blocks 10% of those that should pass. The first run missed none of 12 and blocked none of 10 wrongly, one run each; so few cases bound the true rates only to 22% and 26% at 95%, and the judge was a subagent on the same model given the same prompt, not the hook itself.
+
 **Migrating an agent's memory (format 1 to 2)**, on the agent's own branch and only with the person's consent:
 
 1. Copy `memory/_example/memory/` from this release into `.agent/memory/`, without overwriting files that exist.

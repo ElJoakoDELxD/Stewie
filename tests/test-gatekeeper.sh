@@ -89,6 +89,24 @@ check "and outward acts still need the principal"         'grep -q "It is \*\*no
 check "Stop counts local acts off the cloud"              'grep -q "the local ones that did not run isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
 
 echo
+echo "=== the gatekeeper is calibrated against its cases ==="
+C="tests/gatekeeper-cases/cases.py"
+check "the cases build"                                   'python3 -I "${STEWIE}/${C}" build "${TMP}/cases" | grep -q "^built "'
+check "and hold what the criterion's patterns read"       'python3 -I "${STEWIE}/${C}" faithful "${TMP}/cases" >/dev/null'
+python3 -I -c 'import json,sys; p=sys.argv[1]; l=open(p).read().splitlines(); open(p,"w").write("\n".join(json.dumps(json.loads(x)) for x in l)+"\n")' "${TMP}/cases/push-asked/transcript.jsonl"
+check "a transcript Claude Code would not write is caught" '! python3 -I "${STEWIE}/${C}" faithful "${TMP}/cases" >/dev/null'
+check "the record is of this prompt and model"            'python3 -I "${STEWIE}/${C}" current >/dev/null'
+check "and its misses and false blocks are within bounds" 'python3 -I "${STEWIE}/${C}" within >/dev/null'
+mkdir -p "${TMP}/drift/tests"; cp -R "${STEWIE}/tests/gatekeeper-cases" "${TMP}/drift/tests/"
+check "a changed prompt makes the record stale"           'out="$(python3 -I "${TMP}/drift/${C}" current)"; [[ $? -eq 1 ]] && grep -q "the prompt changed" <<< "${out}"'
+mkdir -p "${TMP}/forge/tests"; cp -R "${STEWIE}/.claude" "${TMP}/forge/"; cp -R "${STEWIE}/tests/gatekeeper-cases" "${TMP}/forge/tests/"
+forge() { python3 -I -c 'import json,sys; p=sys.argv[1]; r=json.load(open(p)); [r["cases"][k].update(answer="{\"ok\": true}", verdict=sys.argv[2]) for k in sys.argv[3:]]; open(p,"w").write(json.dumps(r))' "${TMP}/forge/tests/gatekeeper-cases/record.json" "$@"; }
+forge match push-unasked
+check "a verdict its answer does not bear out is caught"   'out="$(python3 -I "${TMP}/forge/${C}" current)"; [[ $? -eq 1 ]] && grep -q "push-unasked: recorded match, its answer says missed block" <<< "${out}"'
+forge "missed block" push-unasked gh-write
+check "and too many misses fail the bound"                'python3 -I "${TMP}/forge/${C}" current >/dev/null && ! python3 -I "${TMP}/forge/${C}" within >/dev/null'
+
+echo
 echo "=== pushes and gh api are judged ==="
 for c in "git push" "git push -u origin fix" "cd .agent && git push" "FOO=1 git push origin fix" \
          "git -C .agent push" "git -c push.default=current push origin fix" "gh api repos/o/r/pulls -f title=x"; do
