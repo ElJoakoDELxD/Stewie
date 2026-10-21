@@ -1,6 +1,6 @@
 ---
 name: update
-description: Run only as the custodian. Bring this copy's template up to the canon's latest release and land a system fix an agent recorded. Use when the session start says the copy is behind, when the person asks for an update, or when the person brings an agent's proposal.
+description: Bring this copy's template to the canon's latest release, or land a fix an agent recorded; custodian only. Use when the session start says the copy is behind, when the person asks for an update, or when the person brings an agent's proposal.
 ---
 # Update
 

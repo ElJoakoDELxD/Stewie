@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Write this chat's memory, fold into the agent's global memory what a later chat must know, then commit and push from .agent/. Use when the person asks for a handoff, when the context window is filling, and before any session ends.
+description: Save this chat's work into the agent's memory and branch. Use when the person asks for a handoff, when the context window is filling, and before any session ends.
 ---
 # Handoff
 

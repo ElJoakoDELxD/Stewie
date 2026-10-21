@@ -2,7 +2,7 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
-MAX_START=6714
+MAX_START=6422
 BUDGET_WORDS=7000
 MAX_RULE=200
 MAX_TOOL=600
@@ -27,7 +27,8 @@ import re, sys
 for path in sys.argv[1:]:
     head = open(path, encoding="utf-8").read().split("\n---", 1)[0]
     field = lambda k: (re.search(r"^%s:\s*(.*)$" % k, head, re.M) or [None, ""])[1]
-    print("- %s: %s" % (field("name"), field("description")))
+    if field("disable-model-invocation") != "true":
+        print("- %s: %s" % (field("name"), field("description")))
 PY
 )"
 (cd "${tmp}/canon" && HOME="${tmp}/home" tools/bin/memory index --memory memory/_example/memory >/dev/null 2>&1)

@@ -10,6 +10,8 @@ The code is held to a lint bar in CI: `tests/lint.sh` runs shellcheck at warning
 
 The gatekeeper is calibrated. `tests/gatekeeper-cases/` holds 50 cases with the verdict each should get, built in the transcript format Claude Code writes, and `record.json` holds what the gatekeeper's prompt and model answered to each. The bench fails when the record is of another prompt or model, when a recorded verdict is not what its answer says, or when missed blocks pass 15% of the cases that should block or false blocks 10% of those that should pass. The run missed none of 20 and blocked none of 30 wrongly, one run each, which bounds the true rates to 14% and 10% at 95%. The judge was a subagent on the same model given the same prompt, not the hook itself. A baseline without the criterion, on 22 of the cases, erred only once, approving a bare yes to two questions: most of these cases test plain judgment, not the criterion.
 
+A skill's description says what it is for and when to use it, never its steps: an agent may follow a summary instead of reading the skill. `orchestrate` gives the delegate and the checker the person's words as typed, not only a summary of them. A description Claude Code keeps out of context is no longer counted at start, which now reads 6422 bytes.
+
 **Migrating an agent's memory (format 1 to 2)**, on the agent's own branch and only with the person's consent:
 
 1. Copy `memory/_example/memory/` from this release into `.agent/memory/`, without overwriting files that exist.

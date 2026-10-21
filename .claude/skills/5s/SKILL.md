@@ -1,6 +1,6 @@
 ---
 name: 5s
-description: Run 5S (sort, set in order, shine, standardize, sustain) over the public documents, the repository tree, or an agent's memory. Use when asked to tidy, prune or clean up one of them, and on the documents before every release.
+description: Tidy the public documents, the repository tree, or an agent's memory. Use when asked to tidy, prune or clean up one of them, and on the documents before every release.
 ---
 # 5S
 
