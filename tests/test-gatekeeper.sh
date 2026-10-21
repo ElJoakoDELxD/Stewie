@@ -103,7 +103,8 @@ mkdir -p "${TMP}/forge/tests"; cp -R "${STEWIE}/.claude" "${TMP}/forge/"; cp -R 
 forge() { python3 -I -c 'import json,sys; p=sys.argv[1]; r=json.load(open(p)); [r["cases"][k].update(answer="{\"ok\": true}", verdict=sys.argv[2]) for k in sys.argv[3:]]; open(p,"w").write(json.dumps(r))' "${TMP}/forge/tests/gatekeeper-cases/record.json" "$@"; }
 forge match push-unasked
 check "a verdict its answer does not bear out is caught"   'out="$(python3 -I "${TMP}/forge/${C}" current)"; [[ $? -eq 1 ]] && grep -q "push-unasked: recorded match, its answer says missed block" <<< "${out}"'
-forge "missed block" push-unasked gh-write
+mapfile -t blocks < <(python3 -I -c 'import json,sys; [print(k) for k, c in json.load(open(sys.argv[1]))["cases"].items() if c["expected"] == "block"]' "${TMP}/forge/tests/gatekeeper-cases/record.json")
+forge "missed block" "${blocks[@]}"
 check "and too many misses fail the bound"                'python3 -I "${TMP}/forge/${C}" current >/dev/null && ! python3 -I "${TMP}/forge/${C}" within >/dev/null'
 
 echo
