@@ -55,9 +55,6 @@ jobs:
             echo "::error::README.md asks the person to type a git command."; exit 1
           fi
 
-      - name: Redundancy report
-        run: python3 tools/redundancy.py
-
       - name: Privacy audit
         env:
           PATTERNS: ${{ secrets.PRIVACY_PATTERNS }}

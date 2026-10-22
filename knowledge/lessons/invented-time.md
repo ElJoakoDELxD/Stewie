@@ -3,6 +3,7 @@ title: A time not from the clock
 status: current
 date: 2026-10-10
 trigger: reply \b\d{1,2}:\d?x\b
+example: reply [10-10-2026 11:3x] done
 about: CLAUDE.md "copy its line verbatim"
 repeat: every
 ---

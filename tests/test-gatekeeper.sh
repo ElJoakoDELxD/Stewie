@@ -60,7 +60,8 @@ check "a Stop judge that always runs"                     'gk stop'
 check "isolated local acts are left to code"            'grep -q "is authorized unjudged only when it runs isolated" "${STEWIE}/.claude/hooks/gatekeeper.md"'
 check "elsewhere a local act is judged"                   'grep -q "Otherwise judge the local act as an outward one" "${STEWIE}/.claude/hooks/gatekeeper.md"'
 I="${STEWIE}/.claude/hooks/isolation.sh"; P="${TMP}/proj"; mkdir -p "${P}/.claude"; H="${TMP}/home"; mkdir -p "${H}/.claude"
-iso() { printf '{"hook_event_name":"%s"}' "${EV:-SessionStart}" | env -i PATH="${PATH}" HOME="${H}" CLAUDE_PROJECT_DIR="${P}" "$@" bash "${I}" | python3 -I -c 'import json,sys,os; o=json.load(sys.stdin)["hookSpecificOutput"]; print(o["hookEventName"] + " " + o["additionalContext"])'; }
+printf '#!/usr/bin/env bash\nif (( $1 > 0 )); then n=$(( $1 - 1 )); shift; bash "$0" "${n}" "$@"; exit $?; fi\nshift; exec "$@"\n' > "${TMP}/pad.sh"
+iso() { printf '{"hook_event_name":"%s"}' "${EV:-SessionStart}" | env -i PATH="${PATH}" HOME="${H}" CLAUDE_PROJECT_DIR="${P}" "$@" bash "${TMP}/pad.sh" 6 bash "${I}" | python3 -I -c 'import json,sys,os; o=json.load(sys.stdin)["hookSpecificOutput"]; print(o["hookEventName"] + " " + o["additionalContext"])'; }
 cloud="CLAUDE_CODE_REMOTE=true CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE=cloud_default"
 check "a cloud container says so"                         '[[ "$(iso ${cloud})" == "SessionStart Stewie isolation: a cloud container." ]]'
 check "and says it again at each message"                 '[[ "$(EV=UserPromptSubmit iso ${cloud})" == "UserPromptSubmit Stewie isolation: a cloud container." ]]'
@@ -76,6 +77,8 @@ printf '{"sandbox":{"enabled":true}}' > "${H}/.claude/settings.json"
 check "a sandbox that may fall back is no sandbox"        '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
 printf '{"sandbox":{"enabled":true,"failIfUnavailable":true,"excludedCommands":["git *"]}}' > "${H}/.claude/settings.json"
 check "a sandbox that must run counts, with its exclusions" '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with the Bash sandbox on; these run outside it: git *." ]]'
+flagged="$(printf '{"hook_event_name":"SessionStart"}' | env -i PATH="${PATH}" HOME="${H}" CLAUDE_PROJECT_DIR="${P}" bash "${TMP}/pad.sh" 6 bash "${I}" --settings x | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["hookSpecificOutput"]["additionalContext"])')"
+check "but not under a launcher whose flags could override it" '[[ "${flagged}" == "Stewie isolation: this machine, with no sandbox." ]]'
 printf '{"sandbox":{"enabled":true,"failIfUnavailable":true},"permissions":{"additionalDirectories":["~"]}}' > "${H}/.claude/settings.json"
 check "a sandbox that can write the home folder is no sandbox" '[[ "$(iso)" == "SessionStart Stewie isolation: this machine, with no sandbox." ]]'
 printf '{"sandbox":{"enabled":true,"failIfUnavailable":true,"enableWeakerNestedSandbox":true}}' > "${H}/.claude/settings.json"

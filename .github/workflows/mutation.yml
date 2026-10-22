@@ -1,0 +1,25 @@
+name: Mutation
+
+on:
+  pull_request:
+    paths:
+      - ".claude/hooks/**"
+      - ".claude/settings.json"
+      - ".github/workflows/mutation.yml"
+      - "tools/**"
+      - "tests/**"
+      - "knowledge/lessons/**"
+      - "rules/**"
+      - "memory/_example/**"
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Every hook, tool and the gatekeeper's criterion makes a bench fail when it does nothing
+        run: bash tests/mutation.sh

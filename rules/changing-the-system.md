@@ -5,6 +5,12 @@ trigger: edit knowledge/*
 trigger: edit .claude/*
 trigger: edit tools/*
 trigger: edit tests/*
+example: edit CLAUDE.md
+example: edit rules/starting-a-chat.md
+example: edit knowledge/models.md
+example: edit .claude/settings.json
+example: edit tools/bin/clock
+example: edit tests/run.sh
 ---
 # Changing the system
 

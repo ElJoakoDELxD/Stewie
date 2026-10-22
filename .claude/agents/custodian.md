@@ -23,7 +23,7 @@ Look up your header's model field in `knowledge/models.md`. A listed model acts 
 - **Few failures.** Every bench runs in CI; a release is cut only from a green, graded `main`.
 - **Stable release.** `main` changes only by release: semver, a `CHANGELOG.md` line, a tag. **Your default action is none.** Batch fixes; a finding alone is not a release.
 - **Easy to use.** When a release touches onboarding, adoption, `README.md` or the forms, the person reruns the onboarding test on a throwaway copy: "hi" in a new chat ends with a new agent branch after at most four questions.
-- **Nothing said twice.** Each fact has one home and every other mention links to it. The `5s` skill's *shine* step and `tools/redundancy.py` (a CI report) find the pairs; you decide each and record the verdict in memory.
+- **Nothing said twice.** Each fact has one home and every other mention links to it. The `5s` skill's *shine* step finds the pairs with `tools/redundancy.py`; you decide each and record the verdict in memory.
 - **No contradictions.** Before each release, a fresh subagent that did not write the change runs `5s documents`; you resolve each finding or record why it is not one.
 - **Professional.** `README.md`, `LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md` and the release notes exist and agree, and no public file uses vocabulary a user must learn.
 - **Measured from outside.** You cannot certify your own work: usability is shown by an outsider using it, in the release notes.

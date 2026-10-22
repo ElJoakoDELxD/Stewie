@@ -512,7 +512,24 @@ def guarded(lesson):
     return lesson["path"].startswith(str(GUARDED.relative_to(ROOT)) + "/")
 
 
-def lessons():
+def parse_triggers(meta):
+    triggers, broken = [], []
+    for t in meta.get("trigger", []):
+        kind, _, rest = t.partition(" ")
+        rest = rest.strip()
+        if kind in ("bash", "prompt", "fail", "tool", "reply") and rest and len(rest) <= 300:
+            try:
+                triggers.append((kind, re.compile(rest)))
+            except re.error:
+                broken.append(t)
+        elif kind in ("edit", "read") and rest:
+            triggers.append((kind, rest))
+        else:
+            broken.append(t)
+    return triggers, broken
+
+
+def lessons(every=False):
     out = []
     dirs = [GUARDED, ROOT / "knowledge" / "lessons", ROOT / "rules", ROOT / ".agent" / "memory"]
     for d in dirs:
@@ -527,27 +544,121 @@ def lessons():
             if text is None:
                 continue
             meta, body = frontmatter(text)
-            triggers = []
-            for t in meta.get("trigger", []):
-                kind, _, rest = t.partition(" ")
-                rest = rest.strip()
-                if kind in ("bash", "prompt", "fail", "tool", "reply") and rest and len(rest) <= 300:
-                    try:
-                        triggers.append((kind, re.compile(rest)))
-                    except re.error:
-                        continue
-                elif kind in ("edit", "read") and rest:
-                    triggers.append((kind, rest))
-            if triggers:
-                out.append(dict(path=str(f.relative_to(ROOT)), meta=meta, body=body, triggers=triggers))
+            triggers, broken = parse_triggers(meta)
+            if triggers or (every and broken):
+                out.append(dict(path=str(f.relative_to(ROOT)), meta=meta, body=body, triggers=triggers, broken=broken))
     return out
 
 
-def fired(lesson, event, data):
+EXAMPLE = {"bash": ("PreToolUse", lambda x: {"tool_name": "Bash", "tool_input": {"command": x}}),
+           "tool": ("PreToolUse", lambda x: {"tool_name": x}),
+           "prompt": ("UserPromptSubmit", lambda x: {"prompt": x}),
+           "reply": ("Stop", lambda x: {"last_assistant_message": x}),
+           "fail": ("PostToolUseFailure", lambda x: {"error": x}),
+           "edit": ("PreToolUse", lambda x: {"tool_name": "Edit", "tool_input": {"file_path": str(ROOT / x)}}),
+           "read": ("PreToolUse", lambda x: {"tool_name": "Read", "tool_input": {"file_path": str(ROOT / x)}})}
+
+
+def listens(event, tool):
+    try:
+        hooks = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8")).get("hooks", {})
+    except (OSError, ValueError, AttributeError):
+        return False
+    for group in hooks.get(event, []):
+        if not any("recall.sh" in str(h.get("command", "")) for h in group.get("hooks", [])):
+            continue
+        m = str(group.get("matcher", ""))
+        if m in ("", "*") or not tool:
+            return True
+        if re.fullmatch(r"[A-Za-z0-9_\- ,|]+", m):
+            if tool in {x.strip() for x in re.split(r"[|,]", m)}:
+                return True
+        elif re.search(m, tool):
+            return True
+    return False
+
+
+def unproven(lesson):
+    shots, bad = [], [f"trigger '{t}' does not parse" for t in lesson.get("broken", [])]
+    bad += ["unless is empty: it would stand nothing down" for u in lesson["meta"].get("unless", []) if not bare(u)]
+    for e in lesson["meta"].get("example", []):
+        kind, _, rest = e.partition(" ")
+        if kind in EXAMPLE and rest.strip():
+            event, data = EXAMPLE[kind]
+            shot = data(rest.strip())
+            if listens(event, shot.get("tool_name", "")):
+                shots.append((event, shot))
+            else:
+                bad.append(f"example '{e}' is a call recall.sh is not wired to hear")
+    for t in lesson["triggers"]:
+        one = dict(lesson, triggers=[t])
+        if not any(safely_fired(one, event, data, lesson) for event, data in shots):
+            bad.append(f"trigger '{t[0]} {getattr(t[1], 'pattern', t[1])}' fires on none of its examples")
+    return bad
+
+
+WHERE = "Stewie isolation: "
+
+
+def bare(text):
+    return text.strip().strip("\"'").rstrip(".").strip()
+
+
+def spared(lesson, record):
+    return any(bare(u) and bare(u) == record for u in lesson["meta"].get("unless", []))
+
+
+def record_of(line):
+    try:
+        return record_in(json.loads(line))
+    except ValueError:
+        return None
+
+
+def record_in(e):
+    a = e.get("attachment") if isinstance(e, dict) and e.get("type") == "attachment" else None
+    if not isinstance(a, dict) or a.get("type") != "hook_additional_context":
+        return None
+    content = a.get("content")
+    first = content[0] if isinstance(content, list) and content else content
+    return first[len(WHERE):].rstrip(".") if isinstance(first, str) and first.startswith(WHERE) else None
+
+
+def isolation(path):
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    except (OSError, TypeError, ValueError):
+        return ""
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return ""
+        with os.fdopen(fd, "rb") as f:
+            fd = None
+            end = f.seek(0, 2)
+            for _ in range(8):
+                start = max(0, end - 1048576)
+                f.seek(start)
+                lines = f.read(end - start).split(b"\n")
+                for line in reversed(lines[1:] if start else lines):
+                    found = record_of(line.decode(errors="replace")) if WHERE.encode() in line else None
+                    if found is not None:
+                        return found
+                if start == 0:
+                    return ""
+                end = start + len(lines[0]) if len(lines) > 1 else start
+    except OSError:
+        return ""
+    finally:
+        if fd is not None:
+            os.close(fd)
+    return ""
+
+
+def fired(lesson, event, data, whole=None):
     tool = data.get("tool_name", "")
     tin = data.get("tool_input") or {}
     command = strip_heredocs(str(tin.get("command", "")))
-    if enforced(lesson, event):
+    if enforced(whole or lesson, event):
         command = QUOTED.sub("''", command)
     for kind, pat in lesson["triggers"]:
         if kind == "bash" and event == "PreToolUse" and tool == "Bash" and pat.search(command):
@@ -580,7 +691,7 @@ def heading(line):
 
 def live_line(about):
     m = re.match(r'(\S+)\s+"(.+)"', about)
-    if not m:
+    if not m or m.group(1) == "CLAUDE.md":
         return ""
     text = safe_read(ROOT / m.group(1))
     for line in (text or "").split("\n"):
@@ -674,9 +785,18 @@ def cmd_recall(args):
         session = data.get("session_id", "")
         hits = past_hits(session)
         ls = lessons()
-        found = [lesson for lesson in ls if enforced(lesson, event) and safely_fired(lesson, event, data)]
+        memo = {}
+
+        def holds(lesson):
+            if lesson["meta"].get("unless") and "record" not in memo:
+                try:
+                    memo["record"] = isolation(str(data.get("transcript_path") or ""))
+                except Exception:
+                    memo["record"] = ""
+            return not spared(lesson, memo.get("record", ""))
+        found = [lesson for lesson in ls if enforced(lesson, event) and safely_fired(lesson, event, data) and holds(lesson)]
         if not found:
-            found = [lesson for lesson in ls if not enforced(lesson, event) and safely_fired(lesson, event, data)]
+            found = [lesson for lesson in ls if not enforced(lesson, event) and safely_fired(lesson, event, data) and holds(lesson)]
         agent = str(data.get("agent_id") or "")
         said, notes, deny = [], [], False
         for lesson in found:
@@ -730,9 +850,9 @@ def cmd_recall(args):
     return 0
 
 
-def safely_fired(lesson, event, data):
+def safely_fired(lesson, event, data, whole=None):
     try:
-        return fired(lesson, event, data)
+        return fired(lesson, event, data, whole)
     except Exception:
         return False
 
@@ -746,9 +866,11 @@ def kind_of(lesson):
 
 
 def cmd_repeats(args):
-    uses, groups = {}, {}
+    uses, groups, record = {}, {}, ""
     ls = lessons()
     for n, e in transcript(args.transcript):
+        found = record_in(e)
+        record = record if found is None else found
         msg = e.get("message") or {}
         content = msg.get("content") if isinstance(msg.get("content"), list) else []
         for c in content:
@@ -759,7 +881,8 @@ def cmd_repeats(args):
                 data = dict(tool_name=c.get("name"), tool_input=c.get("input") or {})
                 for lesson in ls:
                     key = f"{kind_of(lesson)} {lesson['path']}"
-                    if not (once(lesson, "PreToolUse") and key in groups) and fired(lesson, "PreToolUse", data):
+                    if not (once(lesson, "PreToolUse") and key in groups) and not spared(lesson, record) \
+                       and fired(lesson, "PreToolUse", data):
                         groups.setdefault(key, []).append(n)
             if c.get("type") == "tool_result" and c.get("is_error"):
                 raw = c.get("content")
@@ -775,7 +898,8 @@ def cmd_repeats(args):
                     data = dict(tool_name="Bash", tool_input=tin, error=text)
                     for lesson in ls:
                         key = f"{kind_of(lesson)} {lesson['path']}"
-                        if not (once(lesson, "PostToolUseFailure") and key in groups) and fired(lesson, "PostToolUseFailure", data):
+                        if not (once(lesson, "PostToolUseFailure") and key in groups) and not spared(lesson, record) \
+                           and fired(lesson, "PostToolUseFailure", data):
                             groups.setdefault(key, []).append(n)
     rows = sorted(((k, v) for k, v in groups.items() if len(v) >= args.min), key=lambda kv: -len(kv[1]))
     for k, v in rows:
@@ -922,6 +1046,9 @@ def problems(mem):
             found.append(f"{rel}: {UNREADABLE}")
             continue
         meta = frontmatter(text)[0]
+        if meta.get("trigger"):
+            triggers, broken = parse_triggers(meta)
+            found += [f"{rel}: {p}" for p in unproven(dict(path=rel, meta=meta, body="", triggers=triggers, broken=broken))]
         allowed = set(rules.get("required", [])) | set(rules.get("optional", []))
         for key, values in meta.items():
             if key.startswith("-"):
@@ -1030,6 +1157,14 @@ def cmd_check(args):
     return 1 if found else 0
 
 
+def cmd_triggers(args):
+    found = [f"{lesson['path']}: {p}" for lesson in lessons(every=True) for p in unproven(lesson)]
+    for p in found:
+        print(p)
+    print(f"{len(found)} problems" if found else "every trigger fires on one of its examples")
+    return 1 if found else 0
+
+
 def main(argv):
     import argparse
     ap = argparse.ArgumentParser(prog="memory")
@@ -1062,6 +1197,8 @@ def main(argv):
     p.set_defaults(fn=cmd_retro)
     p = sub.add_parser("recall")
     p.set_defaults(fn=cmd_recall)
+    p = sub.add_parser("triggers")
+    p.set_defaults(fn=cmd_triggers)
     args = ap.parse_args(argv)
     return args.fn(args)
 

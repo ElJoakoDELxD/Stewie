@@ -3,6 +3,7 @@ title: The gatekeeper's cases
 status: current
 date: 2026-10-20
 trigger: edit .claude/hooks/gatekeeper.md
+example: edit .claude/hooks/gatekeeper.md
 about: CLAUDE.md "A blocked tool call names its rule"
 ---
 # The gatekeeper's cases

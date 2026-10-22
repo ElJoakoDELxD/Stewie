@@ -38,10 +38,11 @@ PY
 }
 
 files=()
-while IFS= read -r -d '' f; do files+=("${STEWIE}/${f}"); done < <(git -C "${STEWIE}" ls-files -z -co --exclude-standard)
+while IFS= read -r -d '' f; do [[ -f "${STEWIE}/${f}" ]] && files+=("${STEWIE}/${f}"); done < <(git -C "${STEWIE}" ls-files -z -co --exclude-standard)
 found="$(scan "${files[@]}")"; scanned=$?
 [[ -n "${found}" ]] && printf '%s\n' "${found}"
 check "the code holds only code, and no file carries authorship lines" '[[ -z "${found}" && ${scanned} -eq 0 ]]'
+check "and the scan read the checkout"                         '(( ${#files[@]} > 0 ))'
 
 printf '#!/usr/bin/env bash\n# a comment\necho "${#x} # data"\n' > "${TMP}/a.sh"
 printf 'x=1  # trailing\n' > "${TMP}/b.sh"
