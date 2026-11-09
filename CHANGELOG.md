@@ -4,7 +4,7 @@ One entry per release, newest first.
 
 ## Unreleased
 
-Every delegation names its model. `delegation-model.sh` blocks an `Agent` call without a `model`, which would otherwise inherit the session's, the most expensive, in silence; its message gives when a smaller model pays. Only `malicious-code-review` inherits on purpose.
+Every delegation names its model. `delegation-model.sh` blocks an `Agent` call without a `model`, which would otherwise inherit the session's, the most expensive, in silence; its message gives when a smaller model pays. Only `malicious-code-review` and the Elephant-Goldfish reviewers (`egm-*`), whose review is the safeguard, inherit on purpose.
 
 ## 2.0.0 — first public release
 

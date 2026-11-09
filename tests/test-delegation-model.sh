@@ -15,6 +15,8 @@ check "true as model is blocked"                    'blocks "$(agent "{\"model\"
 check "a list as model is blocked"                  'blocks "$(agent "{\"model\":[\"x\"]}")"'
 check "an agent type with a tail is blocked"        'blocks "$(agent "{\"subagent_type\":\"malicious-code-review\\nx\"}")"'
 check "an agent type in other case is blocked"      'blocks "$(agent "{\"subagent_type\":\"Malicious-Code-Review\"}")"'
+check "an EGM reviewer inherits"                    'run "$(agent "{\"subagent_type\":\"egm:egm-design\"}")" && run "$(agent "{\"subagent_type\":\"egm-zoom-out\"}")"'
+check "a look-alike of EGM is blocked"              'blocks "$(agent "{\"subagent_type\":\"egm:egm-design x\"}")" && blocks "$(agent "{\"subagent_type\":\"xegm-design\"}")" && blocks "$(agent "{\"subagent_type\":\"egm-\"}")"'
 check "another agent type still needs a model"      'blocks "$(agent "{\"subagent_type\":\"general-purpose\"}")"'
 check "a null tool_input is blocked"                'blocks "{\"tool_input\":null}"'
 check "unreadable input is blocked"                 'blocks "not json"'
