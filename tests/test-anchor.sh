@@ -71,6 +71,18 @@ git -C "${TMP}/none" remote remove origin
 out="$(STEWIE_OFFLINE=1 start "${TMP}/none")"
 check "no origin: undetermined, and the chat asks" '[[ "${out}" == *"undetermined"* && "${out}" == *"Ask the person"* ]]'
 
+echo "=== a copy creates its custodian when asked ==="
+fixture "${TMP}/k"
+out="$(cd "${TMP}/k" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" custodian 2>&1)"
+check "a fresh copy has no custodian, and attach says how to create it" '[[ "${out}" == *"no branch custodian"* && "${out}" == *"onboard skill, section 3"* ]]'
+check "the onboard skill holds the step" 'grep -qF "git worktree add --orphan -b custodian .agent" "${STEWIE}/.claude/skills/onboard/SKILL.md"'
+git -C "${TMP}/k" worktree add -q --orphan -b custodian "${TMP}/k/.agent" 2>/dev/null
+cp -R "${TMP}/k/memory/_example/." "${TMP}/k/.agent/"
+git -C "${TMP}/k/.agent" add -A && git -C "${TMP}/k/.agent" commit -q -m "custodian: first chat"
+git -C "${TMP}/k/.agent" push -q -u origin custodian 2>/dev/null
+git clone -q "${TMP}/k.origin" "${TMP}/k2" 2>/dev/null
+check "a new clone attaches the custodian it created" '(cd "${TMP}/k2" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" custodian >/dev/null 2>&1) && [[ $(git -C "${TMP}/k2/.agent" branch --show-current) == custodian && -f "${TMP}/k2/.agent/memory/core.md" ]]'
+
 echo "=== path.sh ==="
 env_file="${TMP}/env"; : > "${env_file}"
 CLAUDE_ENV_FILE="${env_file}" CLAUDE_PROJECT_DIR="${TMP}/one" bash "${STEWIE}/.claude/hooks/path.sh"

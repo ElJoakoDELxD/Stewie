@@ -30,6 +30,16 @@ check "a failed push still exits 0"                '[[ ${rc} -eq 0 ]]'
 check "and says, in one line, committed not pushed" '[[ "$(printf "%s\n" "${out}" | wc -l)" -eq 1 && "${out}" == *"committed"* && "${out}" == *"not pushed"* ]]'
 check "the work is committed"                      '[[ -z "$(git -C "${R}/.agent" status --porcelain)" && "$(head_of "${R}/.agent" HEAD)" != "$(head_of "${R}.origin" refs/heads/agent/ana)" ]]'
 
+git -C "${R}/.agent" remote set-url origin "${R}.origin"
+git -C "${R}" branch -q custodian main
+git -C "${R}" worktree remove --force "${R}/.agent"
+git -C "${R}" worktree add -q "${R}/.agent" custodian
+printf 'c\n' > "${R}/.agent/c.md"
+out="$(save)"
+check "the custodian is committed, never pushed"   '[[ "$(git -C "${R}/.agent" log -1 --format=%s)" == "custodian: autosave" && -z "$(head_of "${R}.origin" refs/heads/custodian)" && "${out}" == *"not pushed"* ]]'
+git -C "${R}" worktree remove --force "${R}/.agent"
+git -C "${R}" worktree add -q "${R}/.agent" agent/ana
+
 git -C "${R}" remote remove origin
 printf 'local\n' >> "${R}/.agent/draft.md"
 check "no remote: committed in silence"            'quiet && [[ -z "$(git -C "${R}/.agent" status --porcelain)" ]]'

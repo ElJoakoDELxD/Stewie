@@ -31,3 +31,13 @@ Then, with every git call alone:
 Nothing is written to `main`. Tell the person, in one or two lines, that every new chat starts with this agent, or offers a choice once there are several.
 
 A later change to `agent.md` is made by a chat that has not declared that agent: it edits the file on a new branch cut from `agent/<name>`, and opens a pull request for the person to approve.
+
+## 3. In a copy: create the custodian
+
+When the person asks for the custodian and `attach custodian` finds no branch, create it, with every git call alone. Steps 2, 4 and 5 each wait for the person's `/principal-approves`.
+
+1. `git ls-remote --heads origin custodian` must print nothing.
+2. `git worktree add --orphan -b custodian .agent`
+3. `cp -R memory/_example/. .agent/` (its role file is `.claude/agents/custodian.md`). Under *Agent* in `.agent/memory/core.md`, write "The custodian of this copy's `main`.", then run `memory index`.
+4. `attach custodian`, then `header --declare agent=custodian`.
+5. `git -C .agent add -A`, then `git -C .agent commit -m "custodian: first chat"`, then `git -C .agent push -u origin custodian`.

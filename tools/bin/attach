@@ -39,7 +39,8 @@ if [[ -z "${have}" ]]; then
   elif git -C "${root}" show-ref -q --verify "refs/remotes/origin/${branch}"; then
     git -C "${root}" worktree add -q --track -b "${branch}" "${root}/.agent" "origin/${branch}" || exit 1
   else
-    echo "attach: no branch ${branch}, here or on origin. Create the agent with the onboard skill." >&2
+    how="the agent with the onboard skill"; [[ "${name}" == "custodian" ]] && how="the custodian with the onboard skill, section 3, if the person asked for it"
+    echo "attach: no branch ${branch}, here or on origin. Create ${how}." >&2
     exit 1
   fi
 fi

@@ -16,6 +16,10 @@ if ! { git -C "${work}" add -A && git -C "${work}" commit -q -m "${agent}: autos
   exit 0
 fi
 git -C "${work}" remote get-url origin >/dev/null 2>&1 || exit 0
+if [[ "${branch}" == "custodian" ]]; then
+  printf '{"systemMessage": "Autosave committed the work in .agent/ on custodian, but it is not pushed: a push of the custodian waits for the person to approve it."}\n'
+  exit 0
+fi
 if ! GIT_TERMINAL_PROMPT=0 stewie_timeout 30 git -C "${work}" push -q origin "${branch}" >/dev/null 2>&1; then
   printf '{"systemMessage": "Autosave committed the work in .agent/ on %s, but it is not pushed: push it from .agent/ before this machine goes away."}\n' "${branch}"
 fi
