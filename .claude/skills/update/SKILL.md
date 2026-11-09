@@ -14,7 +14,7 @@ Every git call alone.
 
 1. This copy's version is the first `## x.y.z` in `CHANGELOG.md`.
 2. `git fetch --no-tags https://github.com/ElJoakoDELxD/Stewie "+refs/tags/*:refs/canon/*"`. Never pass `--depth`: the ancestry check below needs the whole line.
-3. Place the version before ordering it. No `refs/canon/v<this version>` means this copy's version is not a canon release: stop, and say that no direction can be claimed. If `git merge-base --is-ancestor refs/canon/v<this version> refs/canon/v<latest>` fails, the canon's line was rewritten: stop, and report it.
+3. `<latest>` is the newest release the canon has not withdrawn with a tag `withdrawn/v<x.y.z>`; a withdrawn release is never taken. Place the version before ordering it. No `refs/canon/v<this version>` means this copy's version is not a canon release: stop, and say that no direction can be claimed. If `git merge-base --is-ancestor refs/canon/v<this version> refs/canon/v<latest>` fails, the canon's line was rewritten: stop, and report it.
 4. Same version: say the copy is current, and stop. Otherwise, show the person the `CHANGELOG.md` entries in between: they say why.
 5. Resolve the pending proposals first (below).
 6. `git switch -c update-<latest> main`, then `git diff --binary refs/canon/v<this version> refs/canon/v<latest> --output=<tmp>/update.patch`, then `git apply --3way <tmp>/update.patch`. On a conflict, keep what a `pending/` record explains, and take the canon's version otherwise.

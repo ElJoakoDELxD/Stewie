@@ -30,6 +30,13 @@
           { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-permissions.sh" }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/context.sh" }
+        ]
+      }
     ]
   }
 }

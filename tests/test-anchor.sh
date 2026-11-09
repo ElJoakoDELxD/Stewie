@@ -72,4 +72,19 @@ CLAUDE_ENV_FILE="${env_file}" CLAUDE_PROJECT_DIR="${TMP}/one" bash "${STEWIE}/.c
 check "tools/bin goes on PATH once" '[[ $(grep -c "${TMP}/one/tools/bin" "${env_file}") -eq 1 ]]'
 check "the line it writes runs" '(source "${env_file}"; [[ ":${PATH}:" == *":${TMP}/one/tools/bin:"* ]])'
 
+echo "=== a withdrawn release ==="
+git -C "${TMP}/canon" tag "withdrawn/v${v%%.*}.99.0" "v${v%%.*}.99.0"
+out="$(start "${TMP}/one")"
+check "a withdrawn release is not offered" '[[ "${out}" != *"behind the canon"* ]]'
+git -C "${TMP}/canon" tag "withdrawn/v${v}" "v${v}"
+out="$(start "${TMP}/one")"
+check "a copy on a withdrawn release is told" '[[ "${out}" == *"${v} was withdrawn by the canon"* ]]'
+git -C "${TMP}/canon" tag -d "withdrawn/v${v}" >/dev/null
+git -C "${TMP}/canon" tag "v${v%%.*}.50.0" "v${v%%.*}.99.0"
+out="$(start "${TMP}/one")"
+check "an older release that stands is offered instead" '[[ "${out}" == *"behind the canon: ${v} here, ${v%%.*}.50.0 released"* ]]'
+git -C "${TMP}/canon" tag -d "v${v%%.*}.50.0" "withdrawn/v${v%%.*}.99.0" >/dev/null
+out="$(start "${TMP}/one")"
+check "without withdrawals, behind is said again" '[[ "${out}" == *"behind the canon: ${v} here, ${v%%.*}.99.0 released"* ]]'
+
 finish "session start (anchor.sh, attach, path.sh)"

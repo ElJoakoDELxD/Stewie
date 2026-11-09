@@ -32,13 +32,17 @@ grep '^DESFASE' "${err}"
 
 if [[ "${place}" == "a copy of the canon" && "${offline}" != "1" ]]; then
   here_v="$(sed -n 's/^## \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' CHANGELOG.md 2>/dev/null | head -1)"
-  if ! released="$(stewie_timeout 15 git ls-remote --tags --refs "${canon}" 'v*' 2>/dev/null | sed -n 's#.*refs/tags/v##p')" || [[ -z "${released}" ]]; then
+  if ! tags="$(stewie_timeout 15 git ls-remote --tags --refs "${canon}" 'v*' 'withdrawn/v*' 2>/dev/null)" \
+      || ! released="$(sed -n 's#.*refs/tags/v##p' <<< "${tags}")" || [[ -z "${released}" ]]; then
     echo "Update check unavailable: the canon did not answer. Say so; silence is not parity."
   elif ! grep -qxF "${here_v}" <<< "${released}"; then
     echo "This copy's version (${here_v:-none}) is not a release of the canon, so no direction can be claimed. The update skill says why."
   else
-    latest="$(sort -V <<< "${released}" | tail -1)"
-    [[ "${latest}" != "${here_v}" ]] && echo "This copy is behind the canon: ${here_v} here, ${latest} released. Say so before other work and offer the update skill."
+    withdrawn="$(sed -n 's#.*refs/tags/withdrawn/v##p' <<< "${tags}")"
+    latest="$(grep -vxF -f <(printf '%s\n' "${withdrawn}") <<< "${released}" | sort -V | tail -1)"
+    grep -qxF "${here_v}" <<< "${withdrawn}" && echo "This copy's version ${here_v} was withdrawn by the canon. Say so before other work and offer the update skill."
+    [[ -n "${latest}" && "${latest}" != "${here_v}" ]] && [[ "$(printf '%s\n%s\n' "${here_v}" "${latest}" | sort -V | tail -1)" == "${latest}" ]] \
+      && echo "This copy is behind the canon: ${here_v} here, ${latest} released. Say so before other work and offer the update skill."
   fi
 fi
 
