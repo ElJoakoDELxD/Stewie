@@ -53,6 +53,12 @@ out="$(start "${TMP}/none")"
 check "a version the canon never released claims no direction" '[[ "${out}" == *"(7.7.7) is not a release of the canon"* && "${out}" != *behind* ]]'
 out="$(STEWIE_CANON="${TMP}/nowhere" start "${TMP}/none")"
 check "an unreachable canon is said, not taken for parity" '[[ "${out}" == *"Update check unavailable"* ]]'
+git init -q -b main "${TMP}/bare-canon" && git -C "${TMP}/bare-canon" commit -q --allow-empty -m one
+out="$(STEWIE_CANON="${TMP}/bare-canon" start "${TMP}/none")"
+check "a canon with no release says so" '[[ "${out}" == *"The canon has published no release yet"* && "${out}" != *"did not answer"* ]]'
+git -C "${TMP}/bare-canon" tag "withdrawn/v${v}"
+out="$(STEWIE_CANON="${TMP}/bare-canon" start "${TMP}/none")"
+check "a withdrawal alone is no release" '[[ "${out}" == *"The canon has published no release yet"* ]]'
 
 echo "=== the canon, and a repository with no origin ==="
 fixture "${TMP}/c"

@@ -33,8 +33,10 @@ grep '^DESFASE' "${err}"
 if [[ "${place}" == "a copy of the canon" && "${offline}" != "1" ]]; then
   here_v="$(sed -n 's/^## \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' CHANGELOG.md 2>/dev/null | head -1)"
   if ! tags="$(stewie_timeout 15 git ls-remote --tags --refs "${canon}" 'v*' 'withdrawn/v*' 2>/dev/null)" \
-      || ! released="$(sed -n 's#.*refs/tags/v##p' <<< "${tags}")" || [[ -z "${released}" ]]; then
+      || ! released="$(sed -n 's#.*refs/tags/v##p' <<< "${tags}")"; then
     echo "Update check unavailable: the canon did not answer. Say so; silence is not parity."
+  elif [[ -z "${released}" ]]; then
+    echo "The canon has published no release yet, so there is no update to offer."
   elif ! grep -qxF "${here_v}" <<< "${released}"; then
     echo "This copy's version (${here_v:-none}) is not a release of the canon, so no direction can be claimed. The update skill says why."
   else
