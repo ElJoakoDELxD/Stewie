@@ -14,6 +14,8 @@ A skill's description says what it is for and when to use it, never its steps: a
 
 The machinery is held to evidence: `5s machinery` keeps a piece only if it shows that it acts. `tests/mutation.sh` makes each hook, tool, the gatekeeper's criterion and the sandbox kit's scripts do nothing, and needs some bench to fail; a workflow runs it when they change. Every trigger carries an `example` it fires on, among the calls `recall.sh` is wired to hear, which `memory triggers` and `memory check` verify. Every CI step can fail, so the redundancy report left CI for the `5s` shine step, with a bench of its own, and `test-code-only.sh` fails when no file it lists exists to read. A reminder no longer quotes a CLAUDE.md line, which is already loaded; it still quotes a rule from any other file. A lesson's `unless` stands it down where the latest isolation record, read as a record and not as text, is that text: `git-runs-alone` no longer blocks in a cloud container, where a lone git call was seen running inside the sandbox too.
 
+Every delegation names its model. `delegation-model.sh` blocks an `Agent` call without a `model`, which would otherwise inherit the session's, the most expensive, in silence; its message gives when a smaller model pays. Only `malicious-code-review` and the Elephant-Goldfish reviewers (`egm-*`), whose review is the safeguard, inherit on purpose.
+
 **Migrating an agent's memory (format 1 to 2)**, on the agent's own branch and only with the person's consent:
 
 1. Copy `memory/_example/memory/` from this release into `.agent/memory/`, without overwriting files that exist, except each `_schema.md`, which this release replaces.
