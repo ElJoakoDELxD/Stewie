@@ -18,6 +18,8 @@ Every delegation names its model. `delegation-model.sh` blocks an `Agent` call w
 
 A chat knows how full its context window is. `tools/bin/context` reads the usage the transcript records for the latest turn, and `context.sh`, at each message, says nothing below half and, past 50%, 70% and 85%, says to run the handoff and offer a new chat: a long chat costs more every turn and fails when the window fills. Its text changes only between bands, so it does not break the prompt cache. The handoff gives each memory item its source, a commit, `file:line` or a URL, so a summary can be opened back to its detail. The canon can withdraw a release with a tag `withdrawn/v<x.y.z>`: a copy is not offered it, and a copy on it is told. These add 47 words to the governing prose, and its ceiling rises to match: they are new rules, not a repeat of old ones, and 5s trims what is said twice, not what is new.
 
+The daily use holds. The handoff commits before it pulls: `git pull --rebase` refused to run over the unstaged memory it had just written.
+
 **Migrating an agent's memory (format 1 to 2)**, on the agent's own branch and only with the person's consent:
 
 1. Copy `memory/_example/memory/` from this release into `.agent/memory/`, without overwriting files that exist, except each `_schema.md`, which this release replaces.
