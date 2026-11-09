@@ -24,6 +24,7 @@ fixture() {
   git init -q --bare "${dir}.origin"
   git init -q -b main "${dir}"
   cp -R "${STEWIE}/.claude" "${STEWIE}/memory" "${STEWIE}/tools" "${STEWIE}/CHANGELOG.md" "${dir}/"
+  rm -rf "${dir}/.claude/worktrees" "${dir}/.claude/settings.local.json"
   printf '.agent/\n.claude/settings.local.json\n' > "${dir}/.gitignore"
   git -C "${dir}" add -A && git -C "${dir}" commit -q -m init
   git -C "${dir}" remote add origin "${dir}.origin"
