@@ -31,6 +31,38 @@ check "and says, in one line, committed not pushed" '[[ "$(printf "%s\n" "${out}
 check "the work is committed"                      '[[ -z "$(git -C "${R}/.agent" status --porcelain)" && "$(head_of "${R}/.agent" HEAD)" != "$(head_of "${R}.origin" refs/heads/agent/ana)" ]]'
 
 git -C "${R}/.agent" remote set-url origin "${R}.origin"
+git -C "${R}/.agent" push -q origin HEAD:refs/heads/agent/ana
+
+git -C "${R}/.agent" config push.default nothing
+git -C "${R}/.agent" tag agent/ana
+printf 'explicit\n' >> "${R}/.agent/draft.md"
+check "the push names its destination"             'quiet && [[ "$(head_of "${R}.origin" refs/heads/agent/ana)" == "$(head_of "${R}/.agent" HEAD)" ]]'
+git -C "${R}/.agent" config --unset push.default
+git -C "${R}/.agent" tag -d agent/ana >/dev/null
+
+for state in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD; do
+  path="$(git -C "${R}/.agent" rev-parse --path-format=absolute --git-path "${state}")"
+  head_of "${R}/.agent" HEAD > "${path}"
+  printf '%s\n' "${state}" >> "${R}/.agent/draft.md"
+  before="$(head_of "${R}/.agent" HEAD)"
+  check "a ${state} in progress: silent, and no commit" 'quiet && [[ "$(head_of "${R}/.agent" HEAD)" == "${before}" && -n "$(git -C "${R}/.agent" status --porcelain)" ]]'
+  rm -f "${path}"
+done
+quiet
+
+origin_before="$(head_of "${R}.origin" refs/heads/agent/ana)"
+printf 'canon\n' >> "${R}/.agent/draft.md"
+out="$(STEWIE_CANON="FILE://${R}.origin.git/" save)"
+check "origin is the canon: committed, not pushed, silent" '[[ -z "${out}" && -z "$(git -C "${R}/.agent" status --porcelain)" && "$(head_of "${R}.origin" refs/heads/agent/ana)" == "${origin_before}" ]]'
+git -C "${R}/.agent" push -q origin HEAD:refs/heads/agent/ana
+
+git -C "${R}.origin" update-ref -d refs/heads/agent/ana
+printf 'first\n' >> "${R}/.agent/draft.md"
+out="$(save)"
+check "a branch not on origin: committed, not pushed" '[[ -z "$(git -C "${R}/.agent" status --porcelain)" && -z "$(head_of "${R}.origin" refs/heads/agent/ana)" ]]'
+check "and says, in one line, the first push waits for the handoff" '[[ "$(printf "%s\n" "${out}" | wc -l)" -eq 1 && "${out}" == *"not pushed"* && "${out}" == *"handoff"* ]]'
+git -C "${R}/.agent" push -q origin HEAD:refs/heads/agent/ana
+
 git -C "${R}" branch -q custodian main
 git -C "${R}" worktree remove --force "${R}/.agent"
 git -C "${R}" worktree add -q "${R}/.agent" custodian
@@ -45,6 +77,18 @@ printf 'local\n' >> "${R}/.agent/draft.md"
 check "no remote: committed in silence"            'quiet && [[ -z "$(git -C "${R}/.agent" status --porcelain)" ]]'
 
 git -C "${R}" worktree remove --force "${R}/.agent"
+git -C "${R}" worktree add -q "${TMP}/elsewhere" agent/ana
+ln -s "${TMP}/elsewhere" "${R}/.agent"
+printf 'linked\n' > "${TMP}/elsewhere/linked.md"
+check "a symbolic link at .agent: silent, and no commit" 'quiet && [[ -n "$(git -C "${TMP}/elsewhere" status --porcelain)" ]]'
+rm "${R}/.agent"
+git -C "${R}" worktree remove --force "${TMP}/elsewhere"
+
+git clone -q -b agent/ana "${R}.origin" "${R}/.agent"
+printf 'clone\n' > "${R}/.agent/clone.md"
+check "a separate clone at .agent: silent, and no commit" 'quiet && [[ -n "$(git -C "${R}/.agent" status --porcelain)" ]]'
+rm -rf "${R}/.agent"
+
 mkdir -p "${R}/.agent"; printf 'x\n' > "${R}/.agent/loose.md"
 check "a folder that is no worktree: silent"       'quiet && [[ -f "${R}/.agent/loose.md" ]]'
 check "bad input, no output and no failure"        'out="$(printf "x" | CLAUDE_PROJECT_DIR="${TMP}/none" bash "${HOOK}" 2>&1)"; [[ $? -eq 0 && -z "${out}" ]]'
