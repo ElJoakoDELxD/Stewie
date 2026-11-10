@@ -18,10 +18,10 @@ check "the first agent stays, the last workplace wins" '[[ "$(who)" == "scout|ch
   printf '{"type":"user","message":{"content":[{"tool_use_id":"t1","type":"tool_result","content":[{"type":"text","text":"%s agent=scout chat=chat-l"}]}]}}\n' "${MARK}"; } > "${tr}"
 check "output given as text blocks counts" '[[ "$(who)" == "scout|chat-l|" ]]'
 declares() { { call t1 Bash "$1"; out t1 "${2:-${MARK} agent=scout chat=chat-f}"; } > "${tr}"; [[ "$(who)" == "scout|chat-f|" ]]; }
-check "the call by the path tools/bin/header" 'declares "{\"command\":\"tools/bin/header --declare agent=scout\"}"'
-check "the call by the path ./tools/bin/header" 'declares "{\"command\":\"./tools/bin/header --declare agent=scout\"}"'
-check "the call by this copy's absolute path" 'declares "{\"command\":\"${TMP}/tools/bin/header --declare agent=scout\"}"'
-check "the call from this copy as the recorded cwd" '{ printf "%s\n" "{\"type\":\"assistant\",\"cwd\":\"${TMP}\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"t1\",\"name\":\"Bash\",\"input\":{\"command\":\"tools/bin/header --declare agent=scout\"}}]}}"; out t1 "${MARK} agent=scout chat=chat-f"; } > "${tr}"; [[ "$(who)" == "scout|chat-f|" ]]'
+at() { printf '{"type":"assistant","cwd":"%s","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"%s"}}]}}\n' "$1" "$2"; out t1 "$3"; }
+from() { at "$1" "$2" "${MARK} agent=$3 chat=chat-f" > "${tr}"; who; }
+check "the path tools/bin/header from the repository root" '[[ "$(from "${TMP}" "tools/bin/header --declare agent=scout" scout)" == "scout|chat-f|" ]]'
+check "the path ./tools/bin/header from the root, written with a slash" '[[ "$(from "${TMP}/" "./tools/bin/header --declare agent=scout" scout)" == "scout|chat-f|" ]]'
 check "the call with whitespace around it" 'declares "{\"command\":\"  header --declare agent=scout\\n\"}"'
 check "the mark followed by a note the harness adds" 'declares "{\"command\":\"header --declare agent=scout\"}" "${MARK} agent=scout chat=chat-f
 Shell cwd was reset to /home/user/x"'
@@ -51,9 +51,12 @@ check "a declaration piped" 'refused "{\"command\":\"header --declare agent=evil
 check "a declaration with another argument" 'refused "{\"command\":\"header --declare agent=evil x\"}"'
 check "a declaration after a newline and another command" 'refused "{\"command\":\"attach evil\\nheader --declare agent=evil\"}"'
 check "a mark printed by echo" 'refused "{\"command\":\"echo ${MARK} agent=evil chat=x\"}"'
-check "a header in another checkout" 'refused "{\"command\":\"/tmp/elsewhere/tools/bin/header --declare agent=evil\"}"'
-check "a path that only ends like the header" 'refused "{\"command\":\"xtools/bin/header --declare agent=evil\"}"'
-check "a relative path from another recorded cwd" '{ printf "%s\n" "{\"type\":\"assistant\",\"cwd\":\"/tmp/elsewhere\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"t1\",\"name\":\"Bash\",\"input\":{\"command\":\"tools/bin/header --declare agent=evil\"}}]}}"; out t1 "${MARK} agent=evil chat=x"; } > "${tr}"; [[ "$(who)" == "|sid|" ]]'
+check "a path form from .agent/" '[[ "$(from "${TMP}/.agent" "tools/bin/header --declare agent=evil" evil)" == "|sid|" ]]'
+check "a path form from another folder" '[[ "$(from /tmp/elsewhere "./tools/bin/header --declare agent=evil" evil)" == "|sid|" ]]'
+check "a path form with no recorded cwd" 'refused "{\"command\":\"tools/bin/header --declare agent=evil\"}"'
+check "an absolute path, even this copy's, from the root" '[[ "$(from "${TMP}" "${TMP}/tools/bin/header --declare agent=evil" evil)" == "|sid|" ]]'
+check "an absolute path elsewhere" '[[ "$(from "${TMP}" "/tmp/x/tools/bin/header --declare agent=evil" evil)" == "|sid|" ]]'
+check "a path that only ends like the header" '[[ "$(from "${TMP}" "xtools/bin/header --declare agent=evil" evil)" == "|sid|" ]]'
 check "a mark inside a longer line" 'refused "{\"command\":\"header --declare agent=evil\"}" "say ${MARK} agent=evil chat=x"'
 { call t1 Bash '{"command":"header --declare agent=evil"}'; out t2 "${MARK} agent=evil chat=x"; } > "${tr}"
 check "an output answering no such call" '[[ "$(who)" == "|sid|" ]]'

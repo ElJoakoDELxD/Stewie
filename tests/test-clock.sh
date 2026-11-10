@@ -46,13 +46,13 @@ h="$(echo "t" | STEWIE_TRANSCRIPT="${TMP}/stale.jsonl" "${bin}/header" 2>"${TMP}
 check "an earlier turn is never used" '[[ "${h}" == *"· ?·?]" ]] && grep -q "not this turn" "${TMP}/err6"'
 
 check "with the sandbox off, no agent is declared" '! "${bin}/header" --declare agent=scout 2>"${TMP}/err8" && grep -q "only with the Bash sandbox on" "${TMP}/err8"'
-check "and, in the call that attached, it says to run it again alone" 'grep -q "Run it again alone, in its own call: header --declare agent=scout" "${TMP}/err8"'
+check "and, in the call that attached, it says to run it again alone" 'grep -q "Run it again alone, in its own call, from the repository root: header --declare agent=scout" "${TMP}/err8"'
 pending() { printf '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"p1","name":"Bash","input":{"command":"%s"}}]}}\n' "$1" > "${TMP}/pending.jsonl"; }
 pending "attach scout && header --declare agent=scout"
 check "a declaration chained in the running call is refused" '! locked "${TMP}/p" env STEWIE_TRANSCRIPT="${TMP}/pending.jsonl" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=scout 2>"${TMP}/err9" && [[ ! -f .agent/chats/chat-c.md ]]'
-check "and it says to run it again alone, in its own call" 'grep -q "Run it again alone, in its own call: header --declare agent=scout" "${TMP}/err9"'
+check "and it says to run it again alone, in its own call" 'grep -q "Run it again alone, in its own call, from the repository root: header --declare agent=scout" "${TMP}/err9"'
 check "a declaration with another argument is refused, the same way" '! locked "${TMP}/p" env STEWIE_CHAT=chat-c "${bin}/header" --declare agent=scout x 2>"${TMP}/err10" && grep -q "again alone, in its own call" "${TMP}/err10"'
-pending "tools/bin/header --declare agent=scout"
+pending "header --declare agent=scout"
 check "a declaration alone in the running call is accepted" 'locked "${TMP}/p" env STEWIE_TRANSCRIPT="${TMP}/pending.jsonl" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=scout >/dev/null 2>&1 && rm .agent/chats/chat-c.md'
 mv "${TMP}/p/.claude/hooks" "${TMP}/hooks.real"; mkdir -p "${TMP}/ro/.claude/hooks"; ln -s "${TMP}/ro/.claude/hooks" "${TMP}/p/.claude/hooks"
 check "a hooks folder linked to a read-only one is not the sandbox" '! locked "${TMP}/ro" "${bin}/header" --declare agent=scout 2>/dev/null'

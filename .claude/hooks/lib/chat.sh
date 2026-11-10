@@ -39,21 +39,17 @@ stewie_agent_file() {
 
 stewie_declarations() {
   python3 -I - "$1" "${2:-}" "${3:-marks}" <<'PY' 2>/dev/null
-import json, os, re, sys
+import json, re, sys
 path, root, mode = sys.argv[1:4]
-call = re.compile(r"\s*(\S+) --declare (agent=[a-z0-9][a-z0-9-]*|workplace=[A-Za-z0-9._/-]+)\s*")
-where = re.compile(r"(?:\./)?tools/bin/header|/[A-Za-z0-9._/-]+/tools/bin/header")
+call = re.compile(r"\s*(header|tools/bin/header|\./tools/bin/header) --declare (agent=[a-z0-9][a-z0-9-]*|workplace=[A-Za-z0-9._/-]+)\s*")
 mark = re.compile(r"STEWIE_DECLARED (agent|workplace)=([A-Za-z0-9._/-]+) chat=([A-Za-z0-9_-]+)")
-own = os.path.realpath(os.path.join(root, "tools/bin/header")) if root else None
 
 
 def declared(command, cwd):
     m = call.fullmatch(command)
     if not m:
         return None
-    if m.group(1) == "header":
-        return m.group(2)
-    if own and where.fullmatch(m.group(1)) and os.path.realpath(os.path.join(cwd or root, m.group(1))) == own:
+    if m.group(1) == "header" or (root and cwd and cwd.rstrip("/") == root.rstrip("/")):
         return m.group(2)
     return None
 

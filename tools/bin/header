@@ -9,7 +9,7 @@ stewie_identity "${root}" "${transcript}"
 
 if [[ "${1-}" == "--declare" ]]; then
   kv="${2-}"
-  alone="Run it again alone, in its own call: header --declare ${kv}"
+  alone="Run it again alone, in its own call, from the repository root: header --declare ${kv}"
   if [[ $# -gt 2 ||"$(stewie_declarations "${transcript}" "${root}" pending)" == "chained" ]]; then
     echo "header: a declaration counts only as a call of its own, with nothing chained, piped or added. ${alone}" >&2
     exit 1
