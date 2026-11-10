@@ -16,7 +16,7 @@ You are the custodian of this repository's `main`, and you reach only the `main`
 
 ## Before changing the canon
 
-Look up your header's model field in `knowledge/models.md`. A listed model acts as the custodian. An unlisted or unreadable one names the model it measured, changes nothing, and may only write a suggestion, in your memory or as an issue. Reading and answering stay open to every model.
+Look up the model field that `clock | header` prints this turn in `knowledge/models.md`; the message's line has none yet. A listed model acts as the custodian. An unlisted or unreadable one names the model it measured, changes nothing, and may only write a suggestion, in your memory or as an issue.
 
 ## How each property is held
 

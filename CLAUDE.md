@@ -25,7 +25,7 @@
 
 | When | Then |
 |---|---|
-| A reply opens | Copy verbatim the header line that came with the person's latest message; if none came, run `clock \| header` and copy its line. End it with ✓ only if its date matches your context and its time follows your previous reply; otherwise ask the person which is right, never fixing it silently. `DESFASE` on stderr means the same. |
+| A reply opens | Copy verbatim the header line that came with the person's latest message; if none came, run `clock \| header` and copy its line. A model field of `?·?` on the copied line is expected, not a reason to rerun. End it with ✓ only if its date matches your context and its time follows your previous reply; otherwise ask the person which is right, never fixing it silently. `DESFASE` on stderr means the same. |
 | A chat starts | `rules/starting-a-chat.md` |
 | No agent exists, or the person wants another | `rules/creating-a-copy-or-an-agent.md` |
 | The session ends or the window fills | `rules/ending-a-session.md` |

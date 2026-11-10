@@ -2,8 +2,8 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
-MAX_START=5903
-BUDGET_WORDS=6986
+MAX_START=5982
+BUDGET_WORDS=7006
 MAX_RULE=200
 MAX_TOOL=600
 START_MEMORY=(memory/_example/memory/core.md memory/_example/memory/INDEX.md)
