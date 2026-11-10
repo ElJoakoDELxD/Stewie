@@ -76,7 +76,7 @@ PY
 }
 
 stewie_identity() {
-  local root="$1" transcript="$2" sid="${3:-}" marks first
+  local root="$1" transcript="$2" sid="${3:-}" strict="${4:-}" marks first
   STEWIE_AGENT=""; STEWIE_WORKPLACE=""
   STEWIE_CHAT_ID="${STEWIE_CHAT:-${CLAUDE_CODE_REMOTE_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-${sid:-unknown}}}}"
   marks="$(stewie_declarations "${transcript}")"
@@ -84,7 +84,7 @@ stewie_identity() {
   if [[ -n "${first}" ]]; then
     STEWIE_AGENT="${first#STEWIE_DECLARED agent=}"; STEWIE_AGENT="${STEWIE_AGENT%% *}"
     STEWIE_CHAT_ID="${first##*chat=}"
-  elif [[ -f "${root}/.agent/chats/${STEWIE_CHAT_ID}.md" ]]; then
+  elif [[ "${strict}" != "strict" && -f "${root}/.agent/chats/${STEWIE_CHAT_ID}.md" ]]; then
     STEWIE_AGENT="$(stewie_attached "${root}")"
   fi
   export STEWIE_WORKPLACE

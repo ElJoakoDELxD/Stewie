@@ -22,7 +22,7 @@ if [[ -n "${have}" && "${have}" != "${name}" ]]; then
     exit 1
   fi
   if ! git -C "${root}" worktree remove "${root}/.agent" 2>/dev/null; then
-    echo "attach: .agent/ holds '${have}' with uncommitted work. Commit and push it from .agent/ first." >&2
+    echo "attach: .agent/ holds '${have}' with uncommitted work, saved on this machine only; tell the person so in plain words." >&2
     exit 1
   fi
   have=""
