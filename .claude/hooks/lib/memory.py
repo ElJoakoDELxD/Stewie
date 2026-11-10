@@ -822,7 +822,7 @@ def cmd_recall(args):
             rows.append(dict(error=sig))
             if seen >= 2:
                 said.append(clean(f"Stewie: this error has happened {seen + 1} times in this chat: {sig}", 400)
-                            + "\nCLAUDE.md: the third time an error happens, stop and clear it before other work."
+                            + "\nThe third time an error happens, stop and clear it before other work."
                             " Find its cause; if it is a habit, write a lesson whose trigger catches it.")
         if not rows:
             return 0

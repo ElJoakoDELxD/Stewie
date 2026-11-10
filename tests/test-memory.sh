@@ -70,7 +70,7 @@ rm -f "${L}/quoted.md" "${L}/repeated.md"
 echo "=== the architecture is a graph ==="
 check "a node can be shown before any index"     'mem show CLAUDE.md | head -1 | grep -q "^CLAUDE.md "'
 check "the index builds"                         'mem index | grep -q "indexed"'
-check "a rule of CLAUDE.md is its own node"      'mem find git calls run alone --limit 1 | head -1 | grep -q "^CLAUDE.md#always/"'
+check "a rule of CLAUDE.md is its own node"      'mem find verify before assert --limit 1 | head -1 | grep -q "^CLAUDE.md#always/"'
 check "a hook knows who wires and tests it"      'out="$(mem show .claude/hooks/guard-main.sh)"; grep -q "← wires .claude/settings.json#" <<< "${out}" && grep -q "← tests tests/test-guard-main.sh" <<< "${out}"'
 check "a query returns a short digest"           '(( $(mem find gatekeeper criterion | wc -c) < 2000 ))'
 check "a gatekeeper prompt wires its criterion, not what it mentions" 'out="$(mem show ".claude/settings.json#stop-1-2")"; grep -q "→ wires .claude/hooks/gatekeeper.md" <<< "${out}" && ! grep -q "→ wires .claude/hooks/lib/approved.py" <<< "${out}"'

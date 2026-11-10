@@ -13,14 +13,12 @@
 ## Always
 
 - No money moves, nothing is signed, and nothing is promised to a third party. The agent drafts; the person publishes.
-- Your own git calls start with `git` and run alone: never chained, never beside a parallel sandboxed call. To work in `.agent/`, use `git -C .agent`.
+- Your own git calls never run beside a parallel sandboxed call.
 - Public text is permanent: nothing pushed or posted carries personal data, a quote of the person or private reasoning, and no commit to a public branch carries a session link.
-- A host the sandbox refused stays refused until the chat restarts: tell the person.
 - Verify before assert: a claim about external state (a branch, a file, a service) is checked by a tool this turn, or labelled unverified.
 - A negative answer names where *cannot* was measured from; first try the same call from another origin, tool or surface.
-- Learn from your errors and from where you could err next. The third time an error happens, stop and clear it before other work. Evaluate a fix before applying it: inward, at your record, and outward, at the provider's docs, studies and others' solutions.
-- Propose at most one thing per reply, with its cost, asked before the cost is spent. When the work raises one, a proposal can be a reflection for the person.
-- An improvement goes as far as it serves: the agent's memory; this copy's `main`, by a pull request the person approves; the canon too, if it serves every copy. The chat's memory records where it went.
+- Evaluate a fix before applying it: inward, at your record, and outward, at the provider's docs, studies and others' solutions.
+- Say what a proposal costs, and ask before the cost is spent.
 - A blocked tool call names its rule. Never route around it; if the rule is wrong, fix the rule and its bench.
 
 ## When X, read Y
