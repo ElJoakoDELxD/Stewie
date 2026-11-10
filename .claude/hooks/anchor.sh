@@ -48,7 +48,9 @@ if [[ "${place}" == "a copy of the canon" && "${offline}" != "1" ]]; then
   fi
 fi
 
-stewie_identity "${root}" "$(stewie_transcript "${transcript_path}")" "${session_id}"
+export STEWIE_TRANSCRIPT
+STEWIE_TRANSCRIPT="$(stewie_transcript "${transcript_path}")"
+stewie_identity "${root}" "${STEWIE_TRANSCRIPT}" "${session_id}"
 if [[ -n "${STEWIE_AGENT}" ]]; then
   file=".agent/agent.md"; [[ "${STEWIE_AGENT}" == "custodian" ]] && file=".claude/agents/custodian.md"
   if out="$("${bin}/attach" "${STEWIE_AGENT}" 2>&1)"; then echo "${out}"
@@ -63,11 +65,11 @@ agents="$(grep -vx custodian <<< "${list}")"
 count="$(grep -c . <<< "${agents}")"
 if [[ "${count}" -eq 1 ]]; then
   if out="$("${bin}/attach" "${agents}" 2>&1)"; then
-    echo "${out} It is the only agent here, so it was attached without asking: tell the person which agent this is."
-    echo "Read .agent/agent.md and .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration), then run: header --declare agent=${agents}"
+    echo "${agents} is the only agent here, so it was attached without asking: tell the person which agent this is. Read .agent/agent.md and .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration)."
+    echo "${out}"
   else echo "Could not attach ${agents}, the only agent: ${out} Tell the person."; fi
 elif [[ "${count}" -gt 1 ]]; then
-  echo "Agents here: $(paste -sd, <<< "${agents}" | sed 's/,/, /g'). Ask which one this chat runs as, or whether to create another (onboard skill). Then run 'attach <name>', read .agent/agent.md and .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration), and run 'header --declare agent=<name>'. One chat, one agent."
+  echo "Agents here: $(paste -sd, <<< "${agents}" | sed 's/,/, /g'). Ask which one this chat runs as, or whether to create another (onboard skill). Then run 'attach <name>', read .agent/agent.md and .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration), and do what attach's last line says. One chat, one agent."
 elif [[ "${place}" == "the canon" ]]; then
   echo "No agent is created on the canon. Greet briefly and offer to make the person's own copy (onboard skill, step 1)."
 elif [[ "${place}" == undetermined* ]]; then

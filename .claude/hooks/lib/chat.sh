@@ -38,17 +38,33 @@ stewie_agent_file() {
 }
 
 stewie_declarations() {
-  python3 -I - "$1" <<'PY' 2>/dev/null
-import json, re, sys
-call = re.compile(r"header --declare (agent=[a-z0-9][a-z0-9-]*|workplace=[A-Za-z0-9._/-]+)")
+  python3 -I - "$1" "${2:-}" "${3:-marks}" <<'PY' 2>/dev/null
+import json, os, re, sys
+path, root, mode = sys.argv[1:4]
+call = re.compile(r"\s*(\S+) --declare (agent=[a-z0-9][a-z0-9-]*|workplace=[A-Za-z0-9._/-]+)\s*")
+where = re.compile(r"(?:\./)?tools/bin/header|/[A-Za-z0-9._/-]+/tools/bin/header")
 mark = re.compile(r"STEWIE_DECLARED (agent|workplace)=([A-Za-z0-9._/-]+) chat=([A-Za-z0-9_-]+)")
-calls = {}
+own = os.path.realpath(os.path.join(root, "tools/bin/header")) if root else None
+
+
+def declared(command, cwd):
+    m = call.fullmatch(command)
+    if not m:
+        return None
+    if m.group(1) == "header":
+        return m.group(2)
+    if own and where.fullmatch(m.group(1)) and os.path.realpath(os.path.join(cwd or root, m.group(1))) == own:
+        return m.group(2)
+    return None
+
+
+calls, pending = {}, {}
 try:
-    lines = open(sys.argv[1], encoding="utf-8", errors="replace")
+    lines = open(path, encoding="utf-8", errors="replace")
 except OSError:
     sys.exit()
 for line in lines:
-    if "header --declare" not in line and "STEWIE_DECLARED" not in line:
+    if "--declare" not in line and "STEWIE_DECLARED" not in line and "tool_result" not in line:
         continue
     try:
         r = json.loads(line)
@@ -60,18 +76,28 @@ for line in lines:
     for b in content:
         if not isinstance(b, dict):
             continue
-        if r.get("type") == "assistant" and b.get("type") == "tool_use" and b.get("name") == "Bash":
-            m = call.fullmatch(str((b.get("input") or {}).get("command", "")))
-            if m and isinstance(b.get("id"), str):
-                calls[b["id"]] = m.group(1)
-        elif r.get("type") == "user" and b.get("type") == "tool_result" and b.get("is_error") is not True:
+        if r.get("type") == "assistant" and b.get("type") == "tool_use" and b.get("name") == "Bash" and isinstance(b.get("id"), str):
+            command = str((b.get("input") or {}).get("command", ""))
+            kv = declared(command, r.get("cwd") if isinstance(r.get("cwd"), str) else None)
+            if kv:
+                calls[b["id"]] = kv
+            if "--declare" in command:
+                pending[b["id"]] = "alone" if kv else "chained"
+        elif r.get("type") == "user" and b.get("type") == "tool_result":
+            pending.pop(b.get("tool_use_id"), None)
             kv = calls.pop(b.get("tool_use_id"), None)
             out = b.get("content")
             if isinstance(out, list):
-                out = "".join(x.get("text", "") for x in out if isinstance(x, dict) and x.get("type") == "text")
-            m = mark.fullmatch(out.strip()) if kv and isinstance(out, str) else None
-            if m and "%s=%s" % (m.group(1), m.group(2)) == kv:
-                print(m.group(0))
+                out = "\n".join(x.get("text", "") for x in out if isinstance(x, dict) and x.get("type") == "text")
+            if mode != "marks" or not kv or b.get("is_error") is True or not isinstance(out, str):
+                continue
+            for text in out.splitlines():
+                m = mark.fullmatch(text.strip())
+                if m and "%s=%s" % (m.group(1), m.group(2)) == kv:
+                    print(m.group(0))
+                    break
+if mode == "pending" and pending:
+    print("alone" if "alone" in pending.values() else "chained")
 PY
 }
 
@@ -79,7 +105,7 @@ stewie_identity() {
   local root="$1" transcript="$2" sid="${3:-}" strict="${4:-}" marks first
   STEWIE_AGENT=""; STEWIE_WORKPLACE=""
   STEWIE_CHAT_ID="${STEWIE_CHAT:-${CLAUDE_CODE_REMOTE_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-${sid:-unknown}}}}"
-  marks="$(stewie_declarations "${transcript}")"
+  marks="$(stewie_declarations "${transcript}" "${root}")"
   first="$(printf '%s\n' "${marks}" | grep -m1 '^STEWIE_DECLARED agent=')"
   if [[ -n "${first}" ]]; then
     STEWIE_AGENT="${first#STEWIE_DECLARED agent=}"; STEWIE_AGENT="${STEWIE_AGENT%% *}"

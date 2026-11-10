@@ -9,6 +9,11 @@ stewie_identity "${root}" "${transcript}"
 
 if [[ "${1-}" == "--declare" ]]; then
   kv="${2-}"
+  alone="Run it again alone, in its own call: header --declare ${kv}"
+  if [[ $# -gt 2 ||"$(stewie_declarations "${transcript}" "${root}" pending)" == "chained" ]]; then
+    echo "header: a declaration counts only as a call of its own, with nothing chained, piped or added. ${alone}" >&2
+    exit 1
+  fi
   case "${kv}" in
     agent=*)
       name="${kv#agent=}"
@@ -22,13 +27,17 @@ if [[ "${1-}" == "--declare" ]]; then
         exit 1
       fi
       if ! stewie_sandboxed "${root}"; then
-        echo "header: an agent works only with the Bash sandbox on, and it is off in this chat. 'attach ${name}' turns it on where this machine allows; then declare again. Without it, work as plain Claude Code, with no agent." >&2
+        if grep -qs '"sandbox":{"enabled":true' "${root}/.claude/settings.local.json"; then
+          echo "header: an agent works only with the Bash sandbox on, and it is off in this call: it turns on from the call after 'attach'. ${alone}" >&2
+        else
+          echo "header: an agent works only with the Bash sandbox on, and it is off in this chat. 'attach ${name}' turns it on where this machine allows; then declare again. Without it, work as plain Claude Code, with no agent." >&2
+        fi
         exit 1
       fi
       chat="${root}/.agent/chats/${STEWIE_CHAT_ID}.md"
       if [[ ! -f "${chat}" ]]; then
-        mkdir -p "$(dirname "${chat}")"
-        printf '# Chat %s\n\nAgent: %s. Started %s.\n' "${STEWIE_CHAT_ID}" "${name}" "$(date -u +%d-%m-%Y)" > "${chat}"
+        { mkdir -p "$(dirname "${chat}")" && printf '# Chat %s\n\nAgent: %s. Started %s.\n' "${STEWIE_CHAT_ID}" "${name}" "$(date -u +%d-%m-%Y)" > "${chat}"; } 2>/dev/null \
+          || { echo "header: could not write ${chat}, so nothing was declared." >&2; exit 1; }
       fi
       printf 'STEWIE_DECLARED agent=%s chat=%s\n' "${name}" "${STEWIE_CHAT_ID}"
       ;;

@@ -34,7 +34,8 @@ fixture "${TMP}/two" river scout
 out="$(start "${TMP}/two")"
 check "they are listed, and the chat asks" '[[ "${out}" == *"Agents here: river, scout. Ask which one"* ]]'
 check "nothing is attached before the answer" '[[ ! -e "${TMP}/two/.agent" ]]'
-(cd "${TMP}/two" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" scout >/dev/null 2>&1)
+a="$(cd "${TMP}/two" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" scout 2>&1)"
+check "attach ends with the declaration to make, in a call of its own" '[[ "$(tail -1 <<< "${a}")" == "Next, in a call of its own: header --declare agent=scout" ]]'
 check "a new chat may switch a worktree an earlier chat left" '(cd "${TMP}/two" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" river >/dev/null 2>&1) && [[ $(git -C "${TMP}/two/.agent" branch --show-current) == agent/river ]]'
 result "${MARK} agent=river chat=chat-q" > "${TMP}/q.jsonl"
 check "a chat that declared its agent may not switch" '! (cd "${TMP}/two" && STEWIE_TRANSCRIPT="${TMP}/q.jsonl" "${STEWIE}/tools/bin/attach" scout 2>/dev/null)'
@@ -46,6 +47,7 @@ out="$(start "${TMP}/two" "${TMP}/r.jsonl")"
 check "it re-attaches that agent" '[[ $(git -C "${TMP}/two/.agent" branch --show-current) == agent/river ]]'
 check "and does not ask again" '[[ "${out}" == *"already runs as river; do not ask again"* && "${out}" != *"Ask which"* ]]'
 check "it names the chat's own file" '[[ "${out}" == *".agent/chats/chat-r.md"* ]]'
+check "and asks for no declaration again" '[[ "${out}" != *"Next, in a call of its own"* ]]'
 
 echo "=== versions that share no release line are not ordered ==="
 sed -i "0,/^## ${v}/s//## 7.7.7/" "${TMP}/none/CHANGELOG.md"

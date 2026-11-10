@@ -47,13 +47,18 @@ fi
 
 activate="${root}/.agent/tools/sandbox/activate.sh"
 [[ -f "${activate}" ]] && CLAUDE_PROJECT_DIR="${root}" bash "${activate}"
+declarable=1
 if stewie_sandboxed "${root}"; then
   sandbox="the Bash sandbox is on"
 elif [[ -f "${root}/.claude/settings.local.json" ]] && grep -q '"sandbox":{"enabled":true' "${root}/.claude/settings.local.json"; then
   sandbox="the Bash sandbox turns on from the next command, and the agent can then be declared"
 elif [[ ! -f "${activate}" ]]; then
-  sandbox="this agent has no sandbox kit (.agent/tools/sandbox/activate.sh), so it cannot be declared; work as plain Claude Code"
+  sandbox="this agent has no sandbox kit (.agent/tools/sandbox/activate.sh), so it cannot be declared; work as plain Claude Code"; declarable=0
 else
-  sandbox="the Bash sandbox cannot be turned on on this machine, so the agent cannot be declared; work as plain Claude Code"
+  sandbox="the Bash sandbox cannot be turned on on this machine, so the agent cannot be declared; work as plain Claude Code"; declarable=0
 fi
 echo "Attached ${name} at .agent/ (branch ${branch}); ${sandbox}."
+stewie_identity "${root}" "$(stewie_transcript)"
+if [[ ${declarable} -eq 1 && "${STEWIE_AGENT}" != "${name}" ]]; then
+  echo "Next, in a call of its own: header --declare agent=${name}"
+fi
