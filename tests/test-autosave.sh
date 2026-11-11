@@ -160,4 +160,14 @@ PY'
 check "attach tells no git when .agent/ holds uncommitted work" 'grep -q "saved on this machine only; tell the person" "${STEWIE}/tools/bin/attach" && ! grep -qi "commit and push" "${STEWIE}/tools/bin/attach"'
 check "the hook is wired to Stop"                  'python3 -I -c "import json,sys; s=json.load(open(sys.argv[1])); sys.exit(0 if any(\"autosave.sh\" in h.get(\"command\",\"\") for g in s[\"hooks\"].get(\"Stop\",[]) for h in g[\"hooks\"]) else 1)" "${STEWIE}/.claude/settings.json"'
 
+C="${TMP}/copy"; git init -q -b main "${C}"
+(cd "${STEWIE}" && git ls-files -z | tar --null -T - -cf -) | tar -xf - -C "${C}"
+git -C "${C}" add -A && git -C "${C}" commit -q -m copy
+for p in .bash_profile .bashrc .profile .zprofile .zshrc .gitconfig .gitmodules .ripgreprc .mcp.json \
+         .claude/launch.json .claude/loop.md .claude/scheduled_tasks.json; do : > "${C}/${p}"; done
+for d in .idea .vscode .claude/commands .claude/output-styles .claude/routines .claude/workflows .claude/worktrees/x; do
+  mkdir -p "${C}/${d}" && : > "${C}/${d}/placeholder"
+done
+check "a fresh copy with the environment's placeholder files is clean for a Stop hook" '[[ -z "$(git -C "${C}" status --porcelain)" ]]'
+
 finish "autosave"
