@@ -5,7 +5,7 @@ here="$(dirname "${BASH_SOURCE[0]}")"
 source "${here}/lib/chat.sh"
 
 input="$(cat)"
-eval "$(printf '%s' "${input}" | python3 -c '
+eval "$(printf '%s' "${input}" | python3 -I -c '
 import json, shlex, sys
 d = json.load(sys.stdin)
 for k in ("session_id", "transcript_path"):
@@ -16,7 +16,7 @@ root="${CLAUDE_PROJECT_DIR:-$(stewie_root)}"
 cd "${root}" || exit 0
 bin="${root}/tools/bin"
 offline="${STEWIE_OFFLINE:-0}"
-canon="${STEWIE_CANON:-$(python3 -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])' 2>/dev/null)}"
+canon="${STEWIE_CANON:-$(python3 -I -c 'import json; print(json.load(open(".claude/settings.json"))["env"]["STEWIE_CANON"])' 2>/dev/null)}"
 norm() { printf '%s' "$1" | tr 'A-Z' 'a-z' | sed -E 's#^[a-z+]+://([^@/]*@)?##; s#^git@([^:]*):#\1/#; s#\.git/?$##; s#/+$##'; }
 
 err="$(mktemp)"; trap 'rm -f "${err}"' EXIT
@@ -32,22 +32,30 @@ grep '^DESFASE' "${err}"
 
 if [[ "${place}" == "a copy of the canon" && "${offline}" != "1" ]]; then
   here_v="$(sed -n 's/^## \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' CHANGELOG.md 2>/dev/null | head -1)"
-  if ! released="$(stewie_timeout 15 git ls-remote --tags --refs "${canon}" 'v*' 2>/dev/null | sed -n 's#.*refs/tags/v##p')" || [[ -z "${released}" ]]; then
+  if ! tags="$(stewie_timeout 15 git ls-remote --tags --refs "${canon}" 'v*' 'withdrawn/v*' 2>/dev/null)" \
+      || ! released="$(sed -n 's#.*refs/tags/v##p' <<< "${tags}")"; then
     echo "Update check unavailable: the canon did not answer. Say so; silence is not parity."
+  elif [[ -z "${released}" ]]; then
+    echo "The canon has published no release yet, so there is no update to offer."
   elif ! grep -qxF "${here_v}" <<< "${released}"; then
     echo "This copy's version (${here_v:-none}) is not a release of the canon, so no direction can be claimed. The update skill says why."
   else
-    latest="$(sort -V <<< "${released}" | tail -1)"
-    [[ "${latest}" != "${here_v}" ]] && echo "This copy is behind the canon: ${here_v} here, ${latest} released. Say so before other work and offer the update skill."
+    withdrawn="$(sed -n 's#.*refs/tags/withdrawn/v##p' <<< "${tags}")"
+    latest="$(grep -vxF -f <(printf '%s\n' "${withdrawn}") <<< "${released}" | sort -V | tail -1)"
+    grep -qxF "${here_v}" <<< "${withdrawn}" && echo "This copy's version ${here_v} was withdrawn by the canon. Say so before other work and offer the update skill."
+    [[ -n "${latest}" && "${latest}" != "${here_v}" ]] && [[ "$(printf '%s\n%s\n' "${here_v}" "${latest}" | sort -V | tail -1)" == "${latest}" ]] \
+      && echo "This copy is behind the canon: ${here_v} here, ${latest} released. Say so before other work and offer the update skill."
   fi
 fi
 
-stewie_identity "${root}" "$(stewie_transcript "${transcript_path}")" "${session_id}"
+export STEWIE_TRANSCRIPT
+STEWIE_TRANSCRIPT="$(stewie_transcript "${transcript_path}")"
+stewie_identity "${root}" "${STEWIE_TRANSCRIPT}" "${session_id}"
 if [[ -n "${STEWIE_AGENT}" ]]; then
   file=".agent/agent.md"; [[ "${STEWIE_AGENT}" == "custodian" ]] && file=".claude/agents/custodian.md"
   if out="$("${bin}/attach" "${STEWIE_AGENT}" 2>&1)"; then echo "${out}"
   else echo "Could not re-attach ${STEWIE_AGENT}: ${out} Tell the person."; fi
-  echo "This chat already runs as ${STEWIE_AGENT}; do not ask again. Reread ${file}, .agent/memory/MEMORY.md and .agent/chats/${STEWIE_CHAT_ID}.md, then continue."
+  echo "This chat already runs as ${STEWIE_AGENT}; do not ask again. Reread ${file}, .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration) and .agent/chats/${STEWIE_CHAT_ID}.md, then continue."
   exit 0
 fi
 
@@ -57,11 +65,11 @@ agents="$(grep -vx custodian <<< "${list}")"
 count="$(grep -c . <<< "${agents}")"
 if [[ "${count}" -eq 1 ]]; then
   if out="$("${bin}/attach" "${agents}" 2>&1)"; then
-    echo "${out} It is the only agent here, so it was attached without asking: tell the person which agent this is."
-    echo "Read .agent/agent.md and .agent/memory/MEMORY.md, then run: header --declare agent=${agents}"
+    echo "${agents} is the only agent here, so it was attached without asking: tell the person which agent this is. Read .agent/agent.md and .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration)."
+    echo "${out}"
   else echo "Could not attach ${agents}, the only agent: ${out} Tell the person."; fi
 elif [[ "${count}" -gt 1 ]]; then
-  echo "Agents here: $(paste -sd, <<< "${agents}" | sed 's/,/, /g'). Ask which one this chat runs as, or whether to create another (onboard skill). Then run 'attach <name>', read .agent/agent.md and .agent/memory/MEMORY.md, and run 'header --declare agent=<name>'. One chat, one agent."
+  echo "Agents here: $(paste -sd, <<< "${agents}" | sed 's/,/, /g'). Ask which one this chat runs as, or whether to create another (onboard skill). Then run 'attach <name>', read .agent/agent.md and .agent/memory/core.md and .agent/memory/INDEX.md (MEMORY.md before migration), and do what attach's last line says. One chat, one agent."
 elif [[ "${place}" == "the canon" ]]; then
   echo "No agent is created on the canon. Greet briefly and offer to make the person's own copy (onboard skill, step 1)."
 elif [[ "${place}" == undetermined* ]]; then

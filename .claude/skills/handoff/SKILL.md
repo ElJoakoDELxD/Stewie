@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Write this chat's memory, fold into the agent's global memory what a later chat must know, then commit and push from .agent/. Use when the person asks for a handoff, when the context window is filling, and before any session ends.
+description: Save this chat's work into the agent's memory and branch. Use when the person asks for a handoff, when the context window is filling, and before any session ends.
 ---
 # Handoff
 
@@ -10,7 +10,7 @@ description: Write this chat's memory, fold into the agent's global memory what 
    - **Open:** decisions that wait on the person.
    - **Files:** what was made or changed, as paths.
    - **Dead ends:** what was tried and failed, and why.
-   - **Improvements:** each one, and where it went (the levels are in `CLAUDE.md`). A fix to the system is recorded here with its files and change, as `rules/changing-the-system.md` says.
-2. **The global memory.** Run `cd .agent`, then `git pull --rebase`, since another chat of this agent may have written. Then put what a later chat must know in a small file under `.agent/memory/`, with one line for it in `MEMORY.md` (200 lines at most). Write what was learned, not the story of the chat.
-3. **Push.** `git add -A`, then `git commit -m "<agent>: <what this chat did>"`, then `git push`, each alone, from `.agent/`.
-4. Say in one line what was saved and pushed.
+   - **Improvements:** each one, and where it went: the agent's memory, or the system. A fix to the system is recorded here with its files and change, as `rules/changing-the-system.md` says.
+2. **The global memory.** Put what a later chat must know in one file per item in its category folder under `.agent/memory/`, following that folder's `_schema.md`; only what every chat needs goes in `core.md`, one statement per line. Write this chat's **Next** as an item in `open/`, as `open/_schema.md` says, so a new chat finds it in `INDEX.md`, and close the `open/` items this chat finished. Run `memory index` and `memory check`, and fix every problem it lists; a memory in the old format is migrated only with the person's consent, as `CHANGELOG.md` says. Write what was learned, not the story of the chat, and give each item its source (a commit, `file:line` or a URL), so a later chat can open the summary back to its detail.
+3. **Save.** If the branch is public, run the `leak-check` skill first. Only write the files: the autosave at the end of the turn commits and pushes `.agent/`.
+4. Say in one line what was saved, and in plain words if the autosave could not push.

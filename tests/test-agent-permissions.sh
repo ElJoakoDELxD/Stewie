@@ -12,7 +12,7 @@ run() { hook "${H}" "$(payload "$@")"; }
 echo "=== before a declaration: the control ==="
 check "Write anywhere passes" '[[ $(run Write "${P}" "${tr}" file_path=README.md) == PASS ]]'
 
-d="$(STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a "${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
+d="$(locked "${P}" env STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a "${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
 check "the declaration is accepted" '[[ "${d}" == "${MARK} agent=scout chat=chat-a" ]]'
 check "a second declaration is refused" '! STEWIE_TRANSCRIPT="${tr}" "${bin}/header" --declare agent=other 2>/dev/null'
 
@@ -46,7 +46,8 @@ check "it holds before a declaration too"  '[[ $(STEWIE_CHAT=chat-a run Read "${
 echo "=== pushes come only from a declared path ==="
 check "a push from .agent/ passes"         '[[ $(run Bash "${A}" "${tr}" command="git push") == PASS ]]'
 check "a push from the project is refused" '[[ $(run Bash "${P}" "${tr}" command="git push origin HEAD") == BLOCK ]]'
-check "and the refusal says how"           'grep -q "cd .agent" "${TMP}/hook.err"'
+check "and the refusal says how"           'grep -q "git -C .agent push" "${TMP}/hook.err"'
+check "and the way it says passes"         '[[ $(run Bash "${P}" "${tr}" command="git -C .agent push") == PASS ]]'
 check "a chained push is judged where it runs" '[[ $(run Bash "${P}" "${tr}" command="cd .agent && git push") == BLOCK ]]'
 check "a push named in a message is not a push" '[[ $(run Bash "${A}" "${tr}" command="git commit -m \"push later\"") == PASS ]]'
 check "other commands pass"                '[[ $(run Bash "${P}" "${tr}" command="ls -la") == PASS ]]'
@@ -57,7 +58,7 @@ C="${TMP}/c"
 git -C "${C}" worktree add -q --orphan -b custodian "${C}/.agent" 2>/dev/null
 git -C "${C}/.agent" commit -q --allow-empty -m seed
 tc="${TMP}/c.jsonl"; : > "${tc}"
-d="$(cd "${C}" && STEWIE_TRANSCRIPT="${tc}" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=custodian 2>&1)"; result "${d}" >> "${tc}"
+d="$(cd "${C}" && locked "${C}" env STEWIE_TRANSCRIPT="${tc}" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=custodian 2>&1)"; result "${d}" >> "${tc}"
 check "the custodian is declared"          '[[ "${d}" == "${MARK} agent=custodian chat=chat-c" ]]'
 check "it writes the template"             '[[ $(run Write "${C}" "${tc}" file_path=README.md) == PASS ]]'
 check "never its own role file"            '[[ $(run Edit "${C}" "${tc}" file_path=.claude/agents/custodian.md) == BLOCK ]]'

@@ -24,6 +24,7 @@ fixture() {
   git init -q --bare "${dir}.origin"
   git init -q -b main "${dir}"
   cp -R "${STEWIE}/.claude" "${STEWIE}/memory" "${STEWIE}/tools" "${STEWIE}/CHANGELOG.md" "${dir}/"
+  rm -rf "${dir}/.claude/worktrees" "${dir}/.claude/settings.local.json"
   printf '.agent/\n.claude/settings.local.json\n' > "${dir}/.gitignore"
   git -C "${dir}" add -A && git -C "${dir}" commit -q -m init
   git -C "${dir}" remote add origin "${dir}.origin"
@@ -40,7 +41,21 @@ fixture() {
   done
 }
 
-result() { printf '{"type":"user","message":{"content":[{"type":"tool_result","content":"%s\\n"}]}}\n' "$1"; }
+calls=0
+result() {
+  local kv="${1#* }" id; kv="${kv%% chat=*}"; calls=$((calls + 1)); id="toolu_b${calls}_${RANDOM}"
+  printf '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"%s","name":"Bash","input":{"command":"header --declare %s"}}]}}\n' "${id}" "${kv}"
+  printf '{"type":"user","message":{"content":[{"tool_use_id":"%s","type":"tool_result","content":"%s","is_error":false}]}}\n' "${id}" "$1"
+}
+
+locked() {
+  local repo="$1" rc bw; shift
+  if [[ $(id -u) -ne 0 ]]; then
+    chmod a-w "${repo}/.claude/hooks"; "$@"; rc=$?; chmod u+w "${repo}/.claude/hooks"; return "${rc}"
+  fi
+  bw="$(command -v bwrap || printf '%s' "${STEWIE}/memory/_example/tools/sandbox/linux-x86_64/bwrap")"
+  "${bw}" --dev-bind / / --ro-bind "${repo}/.claude/hooks" "${repo}/.claude/hooks" "$@"
+}
 
 hook() {
   local rc
@@ -48,7 +63,7 @@ hook() {
   if [[ ${rc} -eq 2 ]]; then echo BLOCK; else echo PASS; fi
 }
 payload() {
-  python3 - "$@" <<'PY'
+  python3 -I - "$@" <<'PY'
 import json, sys
 tool, cwd, transcript, *kv = sys.argv[1:]
 ti = dict(x.split("=", 1) for x in kv)

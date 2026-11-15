@@ -5,7 +5,7 @@ kit="${STEWIE}/memory/_example/tools/sandbox"
 [[ "$(uname -s)/$(uname -m)" == "Linux/x86_64" ]] || { echo "sandbox kit: bench skipped (not Linux x86_64)"; exit 0; }
 
 mkdir -p "${TMP}/bin" "${TMP}/proj/.claude"
-STEWIE_SANDBOX_BIN="${TMP}/bin" CLAUDE_PROJECT_DIR="${TMP}/proj" HTTPS_PROXY=http://127.0.0.1:41547 bash "${kit}/activate.sh"
+STEWIE_SANDBOX_BIN="${TMP}/bin" CLAUDE_PROJECT_DIR="${TMP}/proj" HTTPS_PROXY=http://proxy.invalid:8080 bash "${kit}/activate.sh"
 s="${TMP}/proj/.claude/settings.local.json"
 check "tools linked" '[[ -L "${TMP}/bin/bwrap" && -L "${TMP}/bin/socat" ]]'
 check "settings are JSON" 'python3 -m json.tool "${s}" >/dev/null'

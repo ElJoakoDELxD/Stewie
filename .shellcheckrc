@@ -1,0 +1,2 @@
+# Kept here so that a personal ~/.shellcheckrc cannot change a local run;
+# CI has none. Rules set aside for the bench are in tests/.shellcheckrc.

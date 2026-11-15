@@ -24,10 +24,20 @@ Then, with every git call alone:
 1. `git ls-remote --heads origin agent/<name>` must print nothing; if it prints a branch, the name is taken.
 2. `git worktree add --orphan -b agent/<name> .agent` (git 2.42 or later).
 3. `cp -R memory/_example/. .agent/ && cp .claude/agents/_example.md .agent/agent.md`
-4. Fill `.agent/agent.md`: `name: <name>`, a one-line `description`, and the body from the answers. Keep the default effects.
-5. `attach <name>`, which turns the Bash sandbox on, then `header --declare agent=<name>`, which starts this chat's memory file.
-6. `cd .agent`, then `git add -A`, then `git commit -m "<name>: first chat"`, then `git push -u origin agent/<name>`.
+4. Fill `.agent/agent.md`: `name: <name>`, a one-line `description`, and the body from the answers. Keep the default effects. Fill the *Agent* and *The person's goal* sections of `.agent/memory/core.md` from the same answers, one statement per line, set today's date in `.agent/memory/references/delegations.md`, then run `memory index`.
+5. `attach <name>`, then do what its last line says.
+6. The autosave at the end of the turn commits and pushes `.agent/`; tell the person if it could not push.
 
 Nothing is written to `main`. Tell the person, in one or two lines, that every new chat starts with this agent, or offers a choice once there are several.
 
 A later change to `agent.md` is made by a chat that has not declared that agent: it edits the file on a new branch cut from `agent/<name>`, and opens a pull request for the person to approve.
+
+## 3. In a copy: create the custodian
+
+When the person asks for the custodian and `attach custodian` finds no branch, create it, with every git call alone. Steps 2, 4 and 5 each wait for the person's `/principal-approves`.
+
+1. `git ls-remote --heads origin custodian` must print nothing.
+2. `git worktree add --orphan -b custodian .agent`
+3. `cp -R memory/_example/. .agent/` (its role file is `.claude/agents/custodian.md`). Under *Agent* in `.agent/memory/core.md`, write "The custodian of this copy's `main`.", then run `memory index`.
+4. `attach custodian`, then do what its last line says.
+5. After the autosave commits it, at the end of the turn, `git -C .agent push -u origin custodian`.

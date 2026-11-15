@@ -9,6 +9,11 @@ stewie_identity "${root}" "${transcript}"
 
 if [[ "${1-}" == "--declare" ]]; then
   kv="${2-}"
+  alone="Run it again alone, in its own call, from the repository root: header --declare ${kv}"
+  if [[ $# -gt 2 ||"$(stewie_declarations "${transcript}" "${root}" pending)" == "chained" ]]; then
+    echo "header: a declaration counts only as a call of its own, with nothing chained, piped or added. ${alone}" >&2
+    exit 1
+  fi
   case "${kv}" in
     agent=*)
       name="${kv#agent=}"
@@ -18,13 +23,21 @@ if [[ "${1-}" == "--declare" ]]; then
         exit 1
       fi
       if [[ "$(stewie_attached "${root}")" != "${name}" ]]; then
-        echo "header: '${name}' is not attached at .agent/. Run 'attach ${name}' first, then read its agent file and memory index." >&2
+        echo "header: '${name}' is not attached at .agent/. Run 'attach ${name}' first, then read its agent file and .agent/memory/core.md." >&2
+        exit 1
+      fi
+      if ! stewie_sandboxed "${root}"; then
+        if grep -qs '"sandbox":{"enabled":true' "${root}/.claude/settings.local.json"; then
+          echo "header: an agent works only with the Bash sandbox on, and it is off in this call: it turns on from the call after 'attach'. ${alone}" >&2
+        else
+          echo "header: an agent works only with the Bash sandbox on, and it is off in this chat. 'attach ${name}' turns it on where this machine allows; then declare again. Without it, work as plain Claude Code, with no agent." >&2
+        fi
         exit 1
       fi
       chat="${root}/.agent/chats/${STEWIE_CHAT_ID}.md"
       if [[ ! -f "${chat}" ]]; then
-        mkdir -p "$(dirname "${chat}")"
-        printf '# Chat %s\n\nAgent: %s. Started %s.\n' "${STEWIE_CHAT_ID}" "${name}" "$(date -u +%d-%m-%Y)" > "${chat}"
+        { mkdir -p "$(dirname "${chat}")" && printf '# Chat %s\n\nAgent: %s. Started %s.\n' "${STEWIE_CHAT_ID}" "${name}" "$(date -u +%d-%m-%Y)" > "${chat}"; } 2>/dev/null \
+          || { echo "header: could not write ${chat}, so nothing was declared." >&2; exit 1; }
       fi
       printf 'STEWIE_DECLARED agent=%s chat=%s\n' "${name}" "${STEWIE_CHAT_ID}"
       ;;
@@ -46,8 +59,10 @@ branch="$(git -C "${root}" branch --show-current 2>/dev/null)"
 [[ -n "${branch}" ]] || { branch="?"; echo "header: no branch (detached HEAD or no git)." >&2; }
 agent="${STEWIE_AGENT:-no agent}"
 workplace="${STEWIE_WORKPLACE:-no workplace declared}"
+sandbox="sandbox off"
+stewie_sandboxed "${root}" && sandbox="sandbox on"
 
-served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -c '
+served="$(tac "${transcript}" 2>/dev/null | grep -m1 '"type":"assistant"' | python3 -I -c '
 import json, sys, time
 from datetime import datetime
 try:
@@ -73,4 +88,4 @@ case "${served}" in
   *) echo "header: model and effort unreadable (no reply recorded in ${transcript})." >&2 ;;
 esac
 
-printf '[%s · %s · %s · %s · %s·%s]\n' "${stamp}" "${agent}" "${branch}" "${workplace}" "${model}" "${effort}"
+printf '[%s · %s · %s · %s · %s · %s·%s]\n' "${stamp}" "${agent}" "${branch}" "${workplace}" "${sandbox}" "${model}" "${effort}"

@@ -12,7 +12,7 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
@@ -22,8 +22,17 @@ jobs:
       - name: Size ratchet
         run: bash tests/sizes.sh
 
+      - name: Lint
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/lint"
+          "${RUNNER_TEMP}/lint/bin/pip" install --quiet --require-hashes --only-binary=:all: -r tests/lint-requirements.txt
+          PATH="${RUNNER_TEMP}/lint/bin:${PATH}" bash tests/lint.sh
+
+      - name: Shipped binaries come from their packages
+        run: bash tests/verify-sources.sh
+
       - name: Version check
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.base_ref == 'main'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
@@ -45,9 +54,6 @@ jobs:
           if grep -n -E '(^|[^A-Za-z])git ' README.md; then
             echo "::error::README.md asks the person to type a git command."; exit 1
           fi
-
-      - name: Redundancy report
-        run: python3 tools/redundancy.py
 
       - name: Privacy audit
         env:

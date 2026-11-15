@@ -4,7 +4,7 @@ source "$(dirname "$0")/lib.sh"
 bin="${STEWIE}/tools/bin"
 now="$(date -u +%s)"
 export STEWIE_CLOCK_RECORD="${TMP}/methods.tsv" STEWIE_CLOCK_SIGNATURE="Test/bench" STEWIE_CLOCK_REFERENCE_EPOCH="${now}"
-cd "${TMP}"
+cd "${TMP}" || exit 1
 
 out="$(TS_ZONE=UTC "${bin}/clock" 2>"${TMP}/err")"
 check "format" '[[ "${out}" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}\ [0-9]{2}:[0-9]{2}\ \+00$ ]]'
@@ -28,12 +28,12 @@ out="$(cd "${TMP}" && TS_ZONE=UTC "${bin}/clock" 2>&1)"
 check "no agent attached: nothing is saved" '[[ "${out}" != *saved* ]]'
 
 fixture "${TMP}/p" scout
-cd "${TMP}/p"
+cd "${TMP}/p" || exit 1
 "${bin}/attach" scout >/dev/null 2>&1
 tr="${TMP}/t.jsonl"; : > "${tr}"
 export STEWIE_TRANSCRIPT="${tr}" STEWIE_CHAT=chat-a
 h="$(echo "01-02-2026 03:04 +00" | "${bin}/header" 2>/dev/null)"
-check "five fields, nothing declared" '[[ "${h}" == "[01-02-2026 03:04 +00 · no agent · main · no workplace declared · ?·?]" ]]'
+check "six fields, nothing declared" '[[ "${h}" == "[01-02-2026 03:04 +00 · no agent · main · no workplace declared · sandbox off · ?·?]" ]]'
 check "never the check mark" '[[ "${h}" != *✓* ]]'
 
 reply() { printf '{"type":"assistant","message":{"model":"m-test","content":[{"type":"text","text":"say \\"model\\":\\"m-quoted\\""}]},"effort":"xhigh","timestamp":"%s"}\n' "$1"; }
@@ -45,11 +45,25 @@ reply "$(date -u -d '-10 min' +%Y-%m-%dT%H:%M:%S.000Z)" > "${TMP}/stale.jsonl"
 h="$(echo "t" | STEWIE_TRANSCRIPT="${TMP}/stale.jsonl" "${bin}/header" 2>"${TMP}/err6")"
 check "an earlier turn is never used" '[[ "${h}" == *"· ?·?]" ]] && grep -q "not this turn" "${TMP}/err6"'
 
-d="$("${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
+check "with the sandbox off, no agent is declared" '! "${bin}/header" --declare agent=scout 2>"${TMP}/err8" && grep -q "only with the Bash sandbox on" "${TMP}/err8"'
+check "and, in the call that attached, it says to run it again alone" 'grep -q "Run it again alone, in its own call, from the repository root: header --declare agent=scout" "${TMP}/err8"'
+pending() { printf '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"p1","name":"Bash","input":{"command":"%s"}}]}}\n' "$1" > "${TMP}/pending.jsonl"; }
+pending "attach scout && header --declare agent=scout"
+check "a declaration chained in the running call is refused" '! locked "${TMP}/p" env STEWIE_TRANSCRIPT="${TMP}/pending.jsonl" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=scout 2>"${TMP}/err9" && [[ ! -f .agent/chats/chat-c.md ]]'
+check "and it says to run it again alone, in its own call" 'grep -q "Run it again alone, in its own call, from the repository root: header --declare agent=scout" "${TMP}/err9"'
+check "a declaration with another argument is refused, the same way" '! locked "${TMP}/p" env STEWIE_CHAT=chat-c "${bin}/header" --declare agent=scout x 2>"${TMP}/err10" && grep -q "again alone, in its own call" "${TMP}/err10"'
+pending "header --declare agent=scout"
+check "a declaration alone in the running call is accepted" 'locked "${TMP}/p" env STEWIE_TRANSCRIPT="${TMP}/pending.jsonl" STEWIE_CHAT=chat-c "${bin}/header" --declare agent=scout >/dev/null 2>&1 && rm .agent/chats/chat-c.md'
+mv "${TMP}/p/.claude/hooks" "${TMP}/hooks.real"; mkdir -p "${TMP}/ro/.claude/hooks"; ln -s "${TMP}/ro/.claude/hooks" "${TMP}/p/.claude/hooks"
+check "a hooks folder linked to a read-only one is not the sandbox" '! locked "${TMP}/ro" "${bin}/header" --declare agent=scout 2>/dev/null'
+rm "${TMP}/p/.claude/hooks"; mv "${TMP}/hooks.real" "${TMP}/p/.claude/hooks"
+h="$(echo "t" | locked "${TMP}/p" "${bin}/header" 2>/dev/null)"
+check "with the hooks read-only, the header says so" '[[ "${h}" == *" · sandbox on · "* ]]'
+d="$(locked "${TMP}/p" "${bin}/header" --declare agent=scout 2>&1)"; result "${d}" >> "${tr}"
 check "a declaration prints its record" '[[ "${d}" == "${MARK} agent=scout chat=chat-a" ]]'
 check "and starts this chat's own file" '[[ -f .agent/chats/chat-a.md ]]'
 h="$(echo "t" | "${bin}/header" 2>/dev/null)"
-check "the declared agent shows" '[[ "${h}" == "[t · scout · main · no workplace declared · "* ]]'
+check "the declared agent shows" '[[ "${h}" == "[t · scout · main · no workplace declared · sandbox off · "* ]]'
 check "a second agent is refused" '! "${bin}/header" --declare agent=other 2>"${TMP}/err7" && grep -q "One chat, one agent: open a new chat" "${TMP}/err7"'
 check "an agent not attached is refused" '! STEWIE_CHAT=chat-z STEWIE_TRANSCRIPT=/dev/null "${bin}/header" --declare agent=nobody 2>/dev/null'
 d="$("${bin}/header" --declare workplace=.agent/projects/garden/ 2>&1)"; result "${d}" >> "${tr}"

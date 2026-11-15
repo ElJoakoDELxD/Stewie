@@ -34,7 +34,8 @@ fixture "${TMP}/two" river scout
 out="$(start "${TMP}/two")"
 check "they are listed, and the chat asks" '[[ "${out}" == *"Agents here: river, scout. Ask which one"* ]]'
 check "nothing is attached before the answer" '[[ ! -e "${TMP}/two/.agent" ]]'
-(cd "${TMP}/two" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" scout >/dev/null 2>&1)
+a="$(cd "${TMP}/two" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" scout 2>&1)"
+check "attach ends with the declaration to make, in a call of its own" '[[ "$(tail -1 <<< "${a}")" == "Next, in a call of its own: header --declare agent=scout" ]]'
 check "a new chat may switch a worktree an earlier chat left" '(cd "${TMP}/two" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" river >/dev/null 2>&1) && [[ $(git -C "${TMP}/two/.agent" branch --show-current) == agent/river ]]'
 result "${MARK} agent=river chat=chat-q" > "${TMP}/q.jsonl"
 check "a chat that declared its agent may not switch" '! (cd "${TMP}/two" && STEWIE_TRANSCRIPT="${TMP}/q.jsonl" "${STEWIE}/tools/bin/attach" scout 2>/dev/null)'
@@ -46,6 +47,7 @@ out="$(start "${TMP}/two" "${TMP}/r.jsonl")"
 check "it re-attaches that agent" '[[ $(git -C "${TMP}/two/.agent" branch --show-current) == agent/river ]]'
 check "and does not ask again" '[[ "${out}" == *"already runs as river; do not ask again"* && "${out}" != *"Ask which"* ]]'
 check "it names the chat's own file" '[[ "${out}" == *".agent/chats/chat-r.md"* ]]'
+check "and asks for no declaration again" '[[ "${out}" != *"Next, in a call of its own"* ]]'
 
 echo "=== versions that share no release line are not ordered ==="
 sed -i "0,/^## ${v}/s//## 7.7.7/" "${TMP}/none/CHANGELOG.md"
@@ -53,6 +55,12 @@ out="$(start "${TMP}/none")"
 check "a version the canon never released claims no direction" '[[ "${out}" == *"(7.7.7) is not a release of the canon"* && "${out}" != *behind* ]]'
 out="$(STEWIE_CANON="${TMP}/nowhere" start "${TMP}/none")"
 check "an unreachable canon is said, not taken for parity" '[[ "${out}" == *"Update check unavailable"* ]]'
+git init -q -b main "${TMP}/bare-canon" && git -C "${TMP}/bare-canon" commit -q --allow-empty -m one
+out="$(STEWIE_CANON="${TMP}/bare-canon" start "${TMP}/none")"
+check "a canon with no release says so" '[[ "${out}" == *"The canon has published no release yet"* && "${out}" != *"did not answer"* ]]'
+git -C "${TMP}/bare-canon" tag "withdrawn/v${v}"
+out="$(STEWIE_CANON="${TMP}/bare-canon" start "${TMP}/none")"
+check "a withdrawal alone is no release" '[[ "${out}" == *"The canon has published no release yet"* ]]'
 
 echo "=== the canon, and a repository with no origin ==="
 fixture "${TMP}/c"
@@ -65,11 +73,38 @@ git -C "${TMP}/none" remote remove origin
 out="$(STEWIE_OFFLINE=1 start "${TMP}/none")"
 check "no origin: undetermined, and the chat asks" '[[ "${out}" == *"undetermined"* && "${out}" == *"Ask the person"* ]]'
 
+echo "=== a copy creates its custodian when asked ==="
+fixture "${TMP}/k"
+out="$(cd "${TMP}/k" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" custodian 2>&1)"
+check "a fresh copy has no custodian, and attach says how to create it" '[[ "${out}" == *"no branch custodian"* && "${out}" == *"onboard skill, section 3"* ]]'
+check "the onboard skill holds the step" 'grep -qF "git worktree add --orphan -b custodian .agent" "${STEWIE}/.claude/skills/onboard/SKILL.md"'
+git -C "${TMP}/k" worktree add -q --orphan -b custodian "${TMP}/k/.agent" 2>/dev/null
+cp -R "${TMP}/k/memory/_example/." "${TMP}/k/.agent/"
+git -C "${TMP}/k/.agent" add -A && git -C "${TMP}/k/.agent" commit -q -m "custodian: first chat"
+git -C "${TMP}/k/.agent" push -q -u origin custodian 2>/dev/null
+git clone -q "${TMP}/k.origin" "${TMP}/k2" 2>/dev/null
+check "a new clone attaches the custodian it created" '(cd "${TMP}/k2" && STEWIE_TRANSCRIPT=/dev/null "${STEWIE}/tools/bin/attach" custodian >/dev/null 2>&1) && [[ $(git -C "${TMP}/k2/.agent" branch --show-current) == custodian && -f "${TMP}/k2/.agent/memory/core.md" ]]'
+
 echo "=== path.sh ==="
 env_file="${TMP}/env"; : > "${env_file}"
 CLAUDE_ENV_FILE="${env_file}" CLAUDE_PROJECT_DIR="${TMP}/one" bash "${STEWIE}/.claude/hooks/path.sh"
 CLAUDE_ENV_FILE="${env_file}" CLAUDE_PROJECT_DIR="${TMP}/one" bash "${STEWIE}/.claude/hooks/path.sh"
 check "tools/bin goes on PATH once" '[[ $(grep -c "${TMP}/one/tools/bin" "${env_file}") -eq 1 ]]'
 check "the line it writes runs" '(source "${env_file}"; [[ ":${PATH}:" == *":${TMP}/one/tools/bin:"* ]])'
+
+echo "=== a withdrawn release ==="
+git -C "${TMP}/canon" tag "withdrawn/v${v%%.*}.99.0" "v${v%%.*}.99.0"
+out="$(start "${TMP}/one")"
+check "a withdrawn release is not offered" '[[ "${out}" != *"behind the canon"* ]]'
+git -C "${TMP}/canon" tag "withdrawn/v${v}" "v${v}"
+out="$(start "${TMP}/one")"
+check "a copy on a withdrawn release is told" '[[ "${out}" == *"${v} was withdrawn by the canon"* ]]'
+git -C "${TMP}/canon" tag -d "withdrawn/v${v}" >/dev/null
+git -C "${TMP}/canon" tag "v${v%%.*}.50.0" "v${v%%.*}.99.0"
+out="$(start "${TMP}/one")"
+check "an older release that stands is offered instead" '[[ "${out}" == *"behind the canon: ${v} here, ${v%%.*}.50.0 released"* ]]'
+git -C "${TMP}/canon" tag -d "v${v%%.*}.50.0" "withdrawn/v${v%%.*}.99.0" >/dev/null
+out="$(start "${TMP}/one")"
+check "without withdrawals, behind is said again" '[[ "${out}" == *"behind the canon: ${v} here, ${v%%.*}.99.0 released"* ]]'
 
 finish "session start (anchor.sh, attach, path.sh)"

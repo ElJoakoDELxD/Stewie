@@ -1,0 +1,4 @@
+# The bench, its runners and its library: their checks are strings that
+# check() runs later, and shellcheck cannot see the variables used inside them.
+# The cost: an unused variable in these files is not reported.
+disable=SC2034

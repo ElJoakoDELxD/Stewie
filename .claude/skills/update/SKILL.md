@@ -1,6 +1,6 @@
 ---
 name: update
-description: Run only as the custodian. Bring this copy's template up to the canon's latest release and land a system fix an agent recorded, each by a pull request the person approves; if the person wants, propose to the canon what serves every copy. Use when the session start says the copy is behind, when the person asks for an update, or when the person brings an agent's proposal.
+description: Bring this copy's template to the canon's latest release, or land a fix an agent recorded; custodian only. Use when the session start says the copy is behind, when the person asks for an update, or when the person brings an agent's proposal.
 ---
 # Update
 
@@ -14,11 +14,11 @@ Every git call alone.
 
 1. This copy's version is the first `## x.y.z` in `CHANGELOG.md`.
 2. `git fetch --no-tags https://github.com/ElJoakoDELxD/Stewie "+refs/tags/*:refs/canon/*"`. Never pass `--depth`: the ancestry check below needs the whole line.
-3. Place the version before ordering it. No `refs/canon/v<this version>` means this copy's version is not a canon release: stop, and say that no direction can be claimed. If `git merge-base --is-ancestor refs/canon/v<this version> refs/canon/v<latest>` fails, the canon's line was rewritten: stop, and report it.
+3. `<latest>` is the newest release the canon has not withdrawn with a tag `withdrawn/v<x.y.z>`; a withdrawn release is never taken. Place the version before ordering it. No `refs/canon/v<this version>` means this copy's version is not a canon release: stop, and say that no direction can be claimed. If `git merge-base --is-ancestor refs/canon/v<this version> refs/canon/v<latest>` fails, the canon's line was rewritten: stop, and report it.
 4. Same version: say the copy is current, and stop. Otherwise, show the person the `CHANGELOG.md` entries in between: they say why.
 5. Resolve the pending proposals first (below).
 6. `git switch -c update-<latest> main`, then `git diff --binary refs/canon/v<this version> refs/canon/v<latest> --output=<tmp>/update.patch`, then `git apply --3way <tmp>/update.patch`. On a conflict, keep what a `pending/` record explains, and take the canon's version otherwise.
-7. If the `format:` of `memory/_example/memory/MEMORY.md` changed, say so. The release notes say how to migrate an agent's memory. That runs on the agent's own branch with the person's consent, never in this pull request.
+7. If the memory format changed (the `format:` of `memory/_example/memory/core.md`, or of `MEMORY.md` in releases before it), say so; new `_schema.md` files reach an agent only this way. The release notes say how to migrate an agent's memory. That runs on the agent's own branch with the person's consent, never in this pull request.
 8. Commit, push the branch, and open a pull request to `main`, or give the person its compare link. Squash-merge it on the person's yes alone.
 
 ## Land a fix an agent recorded
