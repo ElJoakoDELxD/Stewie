@@ -9,6 +9,8 @@ cd "${TMP}" || exit 1
 out="$(TS_ZONE=UTC "${bin}/clock" 2>"${TMP}/err")"
 check "format" '[[ "${out}" =~ ^[0-9]{2}-[0-9]{2}-[0-9]{4}\ [0-9]{2}:[0-9]{2}\ \+00$ ]]'
 check "saved after testing" 'grep -q "^Test/bench	date_tzdata	" "${STEWIE_CLOCK_RECORD}"'
+STEWIE_CLOCK_RECORD="${TMP}/zoned.tsv" TS_ZONE=Asia/Kolkata "${bin}/clock" >/dev/null 2>&1
+check "the record holds UTC times, never the zone" 'grep -q "read .* UTC;" "${TMP}/zoned.tsv" && ! grep -qE " [+-][0-9]{2}:?[0-9]{2}" "${TMP}/zoned.tsv"'
 check "says it saved" 'grep -q "tested and saved" "${TMP}/err"'
 TS_ZONE=UTC "${bin}/clock" >/dev/null 2>"${TMP}/err2"
 check "reused, not saved twice" '[[ $(wc -l < "${STEWIE_CLOCK_RECORD}") -eq 1 ]] && ! grep -q "saved" "${TMP}/err2"'

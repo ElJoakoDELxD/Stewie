@@ -89,7 +89,7 @@ result "${MARK} agent=bea chat=s1" > "${tr}"
 printf 'bea\n' >> "${R}/.agent/draft.md"
 out="$(save "${tr}")"
 check "nor from a chat declared as another agent" '[[ "$(head_of "${R}.origin" refs/heads/agent/ana)" != "$(head_of "${R}/.agent" HEAD)" && "${out}" == *"not known to be ana"* ]]'
-mkdir -p "${R}/.agent/chats"; printf 'notes\n' > "${R}/.agent/chats/s1.md"
+mkdir -p "${R}/.agent/chats"; printf 'notes\n' > "${R}/.agent/chats/464b24a1.md"
 check "a chat with its file in .agent/chats pushes a branch on origin" 'out="$(save /dev/null)" && [[ -z "${out}" && "$(head_of "${R}.origin" refs/heads/agent/ana)" == "$(head_of "${R}/.agent" HEAD)" ]]'
 
 git -C "${R}.origin" update-ref -d refs/heads/agent/ana

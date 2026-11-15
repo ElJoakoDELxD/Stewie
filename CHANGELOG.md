@@ -4,6 +4,8 @@ One entry per release, newest first.
 
 ## Unreleased
 
+A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv`, which now holds UTC times only and never the person's time zone, are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 18 words, and the budget rises to 7036.
+
 The template's `.gitignore` ignores the files the cloud environment and its Bash sandbox leave in a repository root and under `.claude/`, so a Stop hook asking to commit or push finds a clean tree, and `rules/ending-a-session.md` says such a hook is not the person asking, adding 27 words to the governing prose and raising its budget to match because the rule is new.
 
 An agent's memory is a core and categories. `memory/core.md` and `INDEX.md` are what every chat reads. The core is read whole and never compressed: at most 300 words, each item one line holding one statement, at most 280 bytes. The index fits itself to 400 words: open items always, then the newest entries of any category, the older ones counted in a line per category; everything else lives one file per item in `lessons/`, `decisions/`, `open/`, `references/` or `projects/`, each following its folder's `_schema.md`. `memory check` holds every file to its schema, and `memory index` writes `INDEX.md`, which lists only live entries and nobody edits by hand; `memory check` fails when open items alone fill it. A lesson whose error happens a third time is escalated to `.claude/hooks/lessons/`, which blocks the call; `git-runs-alone` is the first.

@@ -100,7 +100,9 @@ PY
 stewie_identity() {
   local root="$1" transcript="$2" sid="${3:-}" strict="${4:-}" marks first
   STEWIE_AGENT=""; STEWIE_WORKPLACE=""
-  STEWIE_CHAT_ID="${STEWIE_CHAT:-${CLAUDE_CODE_REMOTE_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-${sid:-unknown}}}}"
+  local raw="${CLAUDE_CODE_REMOTE_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-${sid}}}"
+  [[ -n "${raw}" ]] && raw="$(printf '%08x' "$(printf '%s' "${raw}" | cksum | cut -d' ' -f1)")"
+  STEWIE_CHAT_ID="${STEWIE_CHAT:-${raw:-unknown}}"
   marks="$(stewie_declarations "${transcript}" "${root}")"
   first="$(printf '%s\n' "${marks}" | grep -m1 '^STEWIE_DECLARED agent=')"
   if [[ -n "${first}" ]]; then
