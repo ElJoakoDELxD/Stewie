@@ -1,0 +1,3 @@
+#!/bin/sh
+here="$(dirname "$(readlink -f "$0")")"
+LD_LIBRARY_PATH="$here/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" exec "$here/socat.bin" -4 "$@"
