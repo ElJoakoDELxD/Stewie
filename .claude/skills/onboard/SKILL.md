@@ -32,9 +32,9 @@ Nothing is written to `main`. Tell the person, in one or two lines, that every n
 
 A later change to `agent.md` is made by a chat that has not declared that agent: it edits the file on a new branch cut from `agent/<name>`, and opens a pull request for the person to approve.
 
-## 3. In a copy: create the custodian
+## 3. Create the custodian
 
-When the person asks for the custodian and `attach custodian` finds no branch, create it, with every git call alone. Steps 2, 4 and 5 each wait for the person's `/principal-approves`.
+When the person asks for the custodian and `attach custodian` finds no branch, create it, with every git call alone. On the canon it is public: nothing private. Steps 2, 4 and 5 each wait for the person's `/principal-approves`.
 
 1. `git ls-remote --heads origin custodian` must print nothing.
 2. `git worktree add --orphan -b custodian .agent`
