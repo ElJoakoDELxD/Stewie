@@ -10,7 +10,7 @@ Public text is permanent (`CLAUDE.md`). Three reviewers read what would be publi
 2. **Send three reviewers in parallel**, each a subagent given only the target's paths and one criterion:
    - **Personal data**: names, emails, phone numbers, addresses, account names, where the person lives or works, their time zone.
    - **Words and thoughts**: quotes of the person, private reasoning of the agent or the person, judgements about people.
-   - **Environment and secrets**: tokens, keys, internal host names, machine paths, session or chat links, proxy and sandbox details.
+   - **Environment and secrets**: tokens, keys, internal host names, machine paths, proxy and sandbox details.
 
    A chat's label and `memory/clock.tsv`, which holds UTC times only, are not leaks. Each reports file, line and type, never the text it found. Use the cheapest model that finds every leak you plant in a copy of the target; `.claude/skills/orchestrate/SKILL.md` has the steps for choosing it.
 3. **Fix every finding**, then run the three again. Push only when all three come back clean.
