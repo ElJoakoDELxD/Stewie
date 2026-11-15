@@ -7,8 +7,12 @@ for tool in git shellcheck ruff; do
 done
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "FAIL  not a git checkout: nothing to list"; exit 1; }
 listed() { git ls-files -z -co --exclude-standard -- "$@" | while IFS= read -r -d '' f; do [[ -f "${f}" ]] && printf '%s\0' "${f}"; done; }
-mapfile -d '' -t shells < <(listed '*.sh' 'tools/bin/*' 'memory/_example/tools/sandbox/linux-x86_64/socat')
 mapfile -d '' -t pys < <(listed '*.py')
+mapfile -d '' -t candidates < <(listed '*.sh' 'tools/bin/*' 'memory/_example/tools/sandbox/linux-x86_64/socat')
+shells=()
+for f in "${candidates[@]}"; do
+  if [[ "${f}" == *.py ]] || head -n 1 -- "${f}" | grep -q '^#!.*python'; then pys+=("${f}"); else shells+=("${f}"); fi
+done
 (( ${#shells[@]} && ${#pys[@]} )) || { echo "FAIL  no scripts or no Python files found"; exit 1; }
 fail=0
 echo "$(shellcheck --version | sed -n 2p), ${#shells[@]} scripts; $(ruff --version), ${#pys[@]} files"
