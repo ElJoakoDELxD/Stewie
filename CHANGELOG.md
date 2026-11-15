@@ -4,7 +4,7 @@ One entry per release, newest first.
 
 ## Unreleased
 
-A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv` are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 13 words, and the budget rises to 7031.
+A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv`, which now holds UTC times only and never the person's time zone, are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 18 words, and the budget rises to 7036.
 
 The template's `.gitignore` ignores the files the cloud environment and its Bash sandbox leave in a repository root and under `.claude/`, so a Stop hook asking to commit or push finds a clean tree, and `rules/ending-a-session.md` says such a hook is not the person asking, adding 27 words to the governing prose and raising its budget to match because the rule is new.
 

@@ -63,8 +63,9 @@ if [[ -z "${used}" ]]; then
     fi
     used="${m}"
     [[ -n "${record}" ]] || break
-    if [[ -n "${ref}" ]]; then evidence="read ${reading#*|}; reference $(date -u -d "@${ref}" '+%d-%m-%Y %H:%M:%S UTC'); delta $(( epoch - ref ))s"
-    else evidence="read ${reading#*|}; reference unreachable, not cross-checked"; fi
+    read_utc="$(date -u -d "@${epoch}" '+%d-%m-%Y %H:%M:%S UTC' 2>/dev/null || date -u -r "${epoch}" '+%d-%m-%Y %H:%M:%S UTC')"
+    if [[ -n "${ref}" ]]; then evidence="read ${read_utc}; reference $(date -u -d "@${ref}" '+%d-%m-%Y %H:%M:%S UTC'); delta $(( epoch - ref ))s"
+    else evidence="read ${read_utc}; reference unreachable, not cross-checked"; fi
     mkdir -p "$(dirname "${record}")"
     printf '%s\t%s\t%s\t%s\n' "${signature}" "${m}" "$(date -u +%Y-%m-%d)" "${evidence}" >> "${record}"
     echo "clock: new environment '${signature}'; method '${m}' tested and saved to ${record#"${root}"/}. Commit it with the memory." >&2
