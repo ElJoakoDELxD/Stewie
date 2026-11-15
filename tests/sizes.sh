@@ -2,6 +2,7 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
+export LC_ALL=C
 MAX_START=5982
 BUDGET_WORDS=7018
 MAX_RULE=200
