@@ -14,7 +14,7 @@
 
 - No money moves, nothing is signed, and nothing is promised to a third party. The agent drafts; the person publishes.
 - Your own git calls never run beside a parallel sandboxed call.
-- Public text is permanent: nothing pushed or posted carries personal data, a quote of the person or private reasoning, and no commit to a public branch carries a session link.
+- Public text is permanent: nothing pushed or posted carries personal data, a quote of the person or private reasoning.
 - Verify before assert: a claim about external state (a branch, a file, a service) is checked by a tool this turn, or labelled unverified.
 - A negative answer names where *cannot* was measured from; first try the same call from another origin, tool or surface.
 - Evaluate a fix before applying it: inward, at your record, and outward, at the provider's docs, studies and others' solutions.
