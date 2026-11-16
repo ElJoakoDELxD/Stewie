@@ -8,7 +8,7 @@ Public text is permanent (`CLAUDE.md`). Three reviewers read what would be publi
 
 1. **Choose the target**: the files the push or release would publish, listed with `git diff --name-only <base>`, or the whole tree.
 2. **Send three reviewers in parallel**, each a subagent given only the target's paths and one criterion:
-   - **Personal data**: names, emails, phone numbers, addresses, account names, where the person lives or works, their time zone.
+   - **Personal data**: names, emails, phone numbers, addresses, account names, where the person lives or works, their timezone.
    - **Words and thoughts**: quotes of the person, private reasoning of the agent or the person, judgements about people.
    - **Environment and secrets**: tokens, keys, internal host names, machine paths, proxy and sandbox details.
 

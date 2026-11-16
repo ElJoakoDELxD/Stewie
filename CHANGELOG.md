@@ -4,9 +4,11 @@ One entry per release, newest first.
 
 ## Unreleased
 
+Two refusals say they are expected and how to proceed: a commit whose branch cannot be checked, because the call changes directory or reads stdin first, passes without approval when run alone where it lands; an agent may not change its own definition, and a chat that has not declared it makes that change.
+
 A session or chat link is no longer a leak, in a commit, a pull request or a memory file: the tools write it on their own, and a rule against it would only be overwritten. `CLAUDE.md` and the leak-check drop it; the start falls to 5925 bytes and the whole system to 7021 words, and both ceilings fall with them.
 
-A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv`, which now holds UTC times only and never the person's time zone, are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 18 words, and the budget rises to 7036.
+A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv`, which now holds UTC times only and never the person's timezone, are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 18 words, and the budget rises to 7036.
 
 The template's `.gitignore` ignores the files the cloud environment and its Bash sandbox leave in a repository root and under `.claude/`, so a Stop hook asking to commit or push finds a clean tree, and `rules/ending-a-session.md` says such a hook is not the person asking, adding 27 words to the governing prose and raising its budget to match because the rule is new.
 
