@@ -10,6 +10,6 @@ No rule here names a model: models change. Before each orchestration, read the l
 2. **Plan.** Write the brief to a file outside the repository: the person's words for this task as typed, each of your turns between them in one line; then the goal, the acceptance criteria, the files, and what not to touch; the delegate knows nothing else. Delegate only what the criteria check, never the person's decisions.
 3. **Delegate.** Give the brief to a subagent on the cheapest model whose stated use covers the task and that `.agent/memory/references/delegations.md` does not show failing it. Its transcript says which model served: an alias can differ by provider. A child session only for work that needs its own hooks or branch.
 4. **Check.** A reader at the planner's level, which did not write the result, checks each criterion against the person's words in the brief. A failure goes back once, one step up in price; then the planner does it.
-5. **Record.** One line in `.agent/memory/references/delegations.md`, a file that follows its folder's schema: the date, the kind of task, the model that served, and whether it passed.
+5. **Record.** One line in `.agent/memory/references/delegations.md`, as that file says.
 
 The header reports the model that served this turn, never the one you delegated to.

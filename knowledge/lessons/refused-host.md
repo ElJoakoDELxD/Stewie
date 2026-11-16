@@ -7,4 +7,4 @@ example: fail curl: (6) Could not resolve host: example.com
 ---
 # A refused host
 
-A host the sandbox refused stays refused until the chat restarts. Tell the person; do not reach it another way.
+A host the sandbox refused stays refused until the chat restarts. It is a block, not a negative answer: tell the person, and do not reach it another way.
