@@ -4,7 +4,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 export LC_ALL=C
 MAX_START=5925
-BUDGET_WORDS=7021
+BUDGET_WORDS=7096
 MAX_RULE=200
 MAX_TOOL=600
 START_MEMORY=(memory/_example/memory/core.md memory/_example/memory/INDEX.md)

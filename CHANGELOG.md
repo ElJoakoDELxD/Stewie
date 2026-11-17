@@ -4,6 +4,8 @@ One entry per release, newest first.
 
 ## Unreleased
 
+Delegation is by role and tier of model, never by model name: the worker reads and writes, the manager (the session) assigns and organizes, the supervisor decides what is done, decides and checks every hard task, and decides every merge review, and the advisor is the most capable model available, consulted only for what is public or irreversible and cannot be checked by a bench. The person sets which model fills each. These are new rules, not a repeat of old ones: the whole-system budget rises from 7021 to 7096 words.
+
 The release workflow publishes a version only from the canon, and only after CI succeeded on the commit it tags, so a copy never publishes its own release and a tag never stands on a red check; CI can also be started by hand. The README says what the sandbox lock does not cover: git runs outside it, and two helper programs are linked into the system's program folder. A refusal that cited a missing rule file now cites the orchestrate skill.
 
 Two refusals say they are expected and how to proceed: a commit whose branch cannot be checked, because the call changes directory or reads stdin first, passes without approval when run alone where it lands; an agent may not change its own definition, and a chat that has not declared it makes that change.
