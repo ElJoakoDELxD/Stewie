@@ -26,4 +26,36 @@ if [[ $(id -u) -ne 0 ]]; then
   check "no writable directory: nothing done" '[[ ! -e "${TMP}/p2/.claude/settings.local.json" ]]'
 fi
 
+mkdir -p "${TMP}/bin3" "${TMP}/bin5"
+fixture "${TMP}/pt" scout
+git -C "${TMP}/pt" worktree add -q "${TMP}/pt/.agent" agent/scout
+printf '\ntouch "${SENTINEL}"\n' >> "${TMP}/pt/.agent/tools/sandbox/activate.sh"
+( cd "${TMP}/pt" && SENTINEL="${TMP}/ran" STEWIE_SANDBOX_BIN="${TMP}/bin3" HTTPS_PROXY=http://proxy.invalid:8080 "${STEWIE}/tools/bin/attach" scout >"${TMP}/at.out" 2>"${TMP}/at.err" )
+check "a kit that is not the template's is not run" '[[ ! -e "${TMP}/ran" && ! -e "${TMP}/pt/.claude/settings.local.json" ]] && grep -q "was not run" "${TMP}/at.err"'
+check "and the agent cannot be declared" 'grep -q "cannot be declared" "${TMP}/at.out"'
+
+fixture "${TMP}/pv" scout
+git -C "${TMP}/pv" worktree add -q "${TMP}/pv/.agent" agent/scout
+for d in "${TMP}/pv/memory/_example/tools/sandbox" "${TMP}/pv/.agent/tools/sandbox"; do printf '\ntouch "${SENTINEL}"\n' >> "${d}/activate.sh"; done
+( cd "${TMP}/pv" && SENTINEL="${TMP}/ran2" STEWIE_SANDBOX_BIN="${TMP}/bin5" HTTPS_PROXY=http://proxy.invalid:8080 "${STEWIE}/tools/bin/attach" scout >"${TMP}/av.out" 2>"${TMP}/av.err" )
+check "a template edited alongside the kit is not trusted: only the committed one counts" '[[ ! -e "${TMP}/ran2" ]] && grep -q "was not run" "${TMP}/av.err" && grep -q "cannot be declared" "${TMP}/av.out"'
+
+fixture "${TMP}/px" scout
+git -C "${TMP}/px" worktree add -q "${TMP}/px/.agent" agent/scout
+rm "${TMP}/px/.agent/tools/sandbox/activate.sh"
+( cd "${TMP}/px" && STEWIE_SANDBOX_BIN="${TMP}/bin6" HTTPS_PROXY=http://proxy.invalid:8080 "${STEWIE}/tools/bin/attach" scout >"${TMP}/ax.out" 2>"${TMP}/ax.err" )
+check "a kit without its activate.sh is not the template's either" 'grep -q "was not run" "${TMP}/ax.err" && grep -q "cannot be declared" "${TMP}/ax.out"'
+
+fixture "${TMP}/pw" scout
+git -C "${TMP}/pw" worktree add -q "${TMP}/pw/.agent" agent/scout
+rm -rf "${TMP}/pw/.agent/tools/sandbox/linux-x86_64/lib"; ln -s /etc "${TMP}/pw/.agent/tools/sandbox/linux-x86_64/lib"
+( cd "${TMP}/pw" && STEWIE_SANDBOX_BIN="${TMP}/bin6" HTTPS_PROXY=http://proxy.invalid:8080 "${STEWIE}/tools/bin/attach" scout >"${TMP}/aw.out" 2>"${TMP}/aw.err" )
+check "a symlink where the template has a directory is not the template's" 'grep -q "was not run" "${TMP}/aw.err"'
+
+fixture "${TMP}/pu" scout
+git -C "${TMP}/pu" worktree add -q "${TMP}/pu/.agent" agent/scout
+mkdir -p "${TMP}/bin4"
+( cd "${TMP}/pu" && STEWIE_SANDBOX_BIN="${TMP}/bin4" HTTPS_PROXY=http://proxy.invalid:8080 "${STEWIE}/tools/bin/attach" scout >"${TMP}/au.out" 2>"${TMP}/au.err" )
+check "the template's own kit is run" '[[ -f "${TMP}/pu/.claude/settings.local.json" ]] && ! grep -q "was not run" "${TMP}/au.err"'
+
 finish "sandbox kit"
