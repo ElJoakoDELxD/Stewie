@@ -27,7 +27,7 @@ case "${tool}" in
     abs="$(python3 -I -c 'import os,sys; print(os.path.realpath(os.path.join(sys.argv[1], sys.argv[2])))' "${cwd}" "${path}")"
     real="$(cd "${root}" && pwd -P)"
     if [[ "${abs}" == "${real}" || "${abs}" == "${real}"/* ]] && [[ "${abs}" != "${real}/.agent/"* ]]; then
-      deny "main is read-only. Write in .agent/, your agent's branch; a change to the template goes on another branch, by a pull request the person approves."
+      deny "main is read-only. Write in .agent/, your agent's branch; a change to the template goes on another branch, by a pull request the custodian merges on the person's yes."
     fi
     exit 0 ;;
   Bash) ;;
@@ -74,6 +74,6 @@ for line in sys.stdin:
 ' "${cwd}" "${root}" "${branch}" "${command}" 2>/dev/null)"
 
 if [[ -n "${reason}" ]]; then
-  deny "that command ${reason}. main is read-only: work in .agent/, and a template change goes on another branch, by a pull request the person approves."
+  deny "that command ${reason}. main is read-only: work in .agent/, and a template change goes on another branch, by a pull request the custodian merges on the person's yes."
 fi
 exit 0
