@@ -4,7 +4,7 @@ Agent: custodian. Started 15-11-2026.
 
 ## State
 - PRs #3, #4, #5 merged into candidate/2.0.0.
-- Branch fix/5s-documents on origin at 31567a5; local 6731a6d (template delegation note) not pushed; no pull request or CI yet.
+- Branch fix/5s-documents on origin at 31567a5; local 9321dc0 (template delegation note) not pushed; no pull request or CI yet.
 - `.claude/skills/orchestrate/SKILL.md` step 1 sends hard tasks to the most capable model as a subagent; that contradicts `memory/decisions/capable-model-use.md`. Propose the change to the person.
 - Audit findings and triage: `memory/references/release-audits-2026-11-16.md`. Model use: `memory/decisions/capable-model-use.md`.
 

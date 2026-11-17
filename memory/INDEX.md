@@ -12,6 +12,7 @@ Written by `memory index`, newest first; never edit it by hand.
 
 ## open
 
+- [The header could declare the advisor's model, read from the transcript](open/header-advisor-model.md) · open · 2026-11-17 · agent
 - [custodian.md should name the newest release tag not withdrawn](open/custodian-latest-tag.md) · open · 2026-11-16 · person
 - [Cut the first release from candidate/2.0.0](open/first-release.md) · open · 2026-11-16 · agent
 - [The commit guard lets a cd-then-commit through when the command does not parse](open/guard-parse-fallback.md) · open · 2026-11-16 · agent
