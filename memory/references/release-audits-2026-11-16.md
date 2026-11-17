@@ -23,3 +23,5 @@ Verified by the custodian: shipped binaries match their packages, gatekeeper pro
 Commit guard: blocks when a call changes directory before a commit (`approved.py:202`); four live commits with a leading `cd` passed at the repository root, unexplained. The guard audit stopped before reporting.
 
 "Graded", proposed: on the commit to tag, every `ci.yml` step succeeds and none is skipped, mutation passes, the gatekeeper record holds its thresholds, sizes, lint and binaries pass.
+
+Resolved 2026-11-17: the unverified sandbox kit on an agent branch (`tools/bin/attach`) is now compared with the committed template before it runs; the release workflow runs only in the canon after CI; the README names what the lock does not cover; the refusal that cited a missing rule cites the orchestrate skill. Still open: issues #1 and #2 point by point, the CHANGELOG fold, naming, a check that guard-main covers main, the rename and the onboarding test.
