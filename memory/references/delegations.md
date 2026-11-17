@@ -7,7 +7,7 @@ date: 2026-10-16
 
 One line per delegated task, appended by the `orchestrate` skill: the date, the kind of task, the model that served, and whether it passed.
 
-A model named below is the one the hook reported when the line was written. It does not say which model serves you now; that is in the transcript of your current reply.
+A model named below is the one the delegate was asked to run on, an alias, when the line was written; it is not a reading of any transcript. It does not say which model serves you now; that is in the transcript of your current reply.
 
 - 2026-11-16 · leak-check reviewers, custodian branch · haiku · passed (no planted-leak calibration)
 - 2026-11-16 · malicious-code review, three diffs · inherited · passed
