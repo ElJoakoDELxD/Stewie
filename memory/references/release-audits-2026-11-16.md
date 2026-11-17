@@ -20,6 +20,6 @@ Record, not blocking: local install path is undocumented and fails on Linux with
 
 Verified by the custodian: shipped binaries match their packages, gatekeeper prompts match (6), actions are pinned (2026-11-16).
 
-Commit guard: blocks when a call changes directory before a commit (`approved.py:202`); four live commits with a leading `cd` passed at the repository root, unexplained. The guard audit stopped before reporting; redo it on the most capable model available.
+Commit guard: blocks when a call changes directory before a commit (`approved.py:202`); four live commits with a leading `cd` passed at the repository root, unexplained. The guard audit stopped before reporting.
 
 "Graded", proposed: on the commit to tag, every `ci.yml` step succeeds and none is skipped, mutation passes, the gatekeeper record holds its thresholds, sizes, lint and binaries pass.
