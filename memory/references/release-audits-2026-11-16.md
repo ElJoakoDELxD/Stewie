@@ -1,5 +1,5 @@
 ---
-title: Fable audits before the first release, with triage
+title: Audits before the first release, with triage
 status: current
 date: 2026-11-16
 source: four subagent reports in chat cse_017LRgRV3k6jW45L7yXMQHDJ; branch release/2.0.0 at 31567a5
@@ -20,6 +20,6 @@ Record, not blocking: local install path is undocumented and fails on Linux with
 
 Verified by the custodian: shipped binaries match their packages, gatekeeper prompts match (6), actions are pinned (2026-11-16).
 
-Commit guard: blocks when a call changes directory before a commit (`approved.py:202`); four live commits with a leading `cd` passed at the repository root, unexplained. Fable's guard audit is paused, work saved.
+Commit guard: blocks when a call changes directory before a commit (`approved.py:202`); four live commits with a leading `cd` passed at the repository root, unexplained. The guard audit stopped before reporting; redo it on the most capable model available.
 
 "Graded", proposed: on the commit to tag, every `ci.yml` step succeeds and none is skipped, mutation passes, the gatekeeper record holds its thresholds, sizes, lint and binaries pass.
