@@ -4,6 +4,8 @@ One entry per release, newest first.
 
 ## Unreleased
 
+The release workflow publishes a version only from the canon, and only after CI succeeded on the commit it tags, so a copy never publishes its own release and a tag never stands on a red check; CI can also be started by hand. The README says what the sandbox lock does not cover: git runs outside it, and two helper programs are linked into the system's program folder. A refusal that cited a missing rule file now cites the orchestrate skill.
+
 Two refusals say they are expected and how to proceed: a commit whose branch cannot be checked, because the call changes directory or reads stdin first, passes without approval when run alone where it lands; an agent may not change its own definition, and a chat that has not declared it makes that change.
 
 A session or chat link is no longer a leak, in a commit, a pull request or a memory file: the tools write it on their own, and a rule against it would only be overwritten. `CLAUDE.md` and the leak-check drop it; the start falls to 5925 bytes and the whole system to 7021 words, and both ceilings fall with them.
