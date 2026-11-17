@@ -12,7 +12,7 @@ sys.exit(0 if (isinstance(m, str) and m.strip()) or a == "malicious-code-review"
 cat >&2 <<'EOF'
 BLOCKED by delegation-model.sh: a delegation names its model; without one it
 inherits this session's, the most expensive, in silence. Pick the cheapest whose
-stated use covers the task (rules/delegating-a-task.md): a smaller model when
+stated use covers the task (.claude/skills/orchestrate/SKILL.md): a smaller model when
 the task is mostly reading or doing, its result is checked cheaply against
 written criteria, and the brief is short beside the work. Repeat the call with
 `model` set. Only malicious-code-review and the Elephant-Goldfish reviewers (egm-*)

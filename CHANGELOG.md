@@ -4,9 +4,17 @@ One entry per release, newest first.
 
 ## Unreleased
 
+`attach` runs an agent's sandbox kit only when it is identical to the template's `memory/_example/tools/sandbox` as committed on the checkout, so editing the working-tree template alongside it changes nothing: an agent branch whose kit differs, or a checkout with no committed template to compare, does not run it, says why and how to restore it, and the agent cannot be declared even when a sandbox is already on. The check happens once per attach: a change made after it lasts until the next attach. Before, whatever `activate.sh` sat on the agent's branch ran, outside the sandbox, at the start of every session.
+
+Delegation is by role and tier of model, never by model name: the worker reads and writes, the manager (the session) assigns and organizes, the supervisor decides what is done, decides and checks every hard task, and decides every merge review, and the advisor is the most capable model available, consulted only for what is public or irreversible and cannot be checked by a bench. The person sets which model fills each. These are new rules, not a repeat of old ones: the whole-system budget rises from 7021 to 7096 words.
+
+The release workflow publishes a version only from the canon, and only after CI succeeded on the commit it tags, so a copy never publishes its own release and a tag never stands on a red check; CI can also be started by hand. The README says what the sandbox lock does not cover: git runs outside it, and two helper programs are linked into the system's program folder. A refusal that cited a missing rule file now cites the orchestrate skill.
+
+Two refusals say they are expected and how to proceed: a commit whose branch cannot be checked, because the call changes directory or reads stdin first, passes without approval when run alone where it lands; an agent may not change its own definition, and a chat that has not declared it makes that change.
+
 A session or chat link is no longer a leak, in a commit, a pull request or a memory file: the tools write it on their own, and a rule against it would only be overwritten. `CLAUDE.md` and the leak-check drop it; the start falls to 5925 bytes and the whole system to 7021 words, and both ceilings fall with them.
 
-A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv`, which now holds UTC times only and never the person's time zone, are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 18 words, and the budget rises to 7036.
+A chat names itself with a short hash of the platform's id, its own label, never the id itself; the label and the clock record `memory/clock.tsv`, which now holds UTC times only and never the person's timezone, are not leaks, and the leak-check says so. The custodian can be created on the canon too, where its branch is public and holds nothing private. These new rules add 18 words, and the budget rises to 7036.
 
 The template's `.gitignore` ignores the files the cloud environment and its Bash sandbox leave in a repository root and under `.claude/`, so a Stop hook asking to commit or push finds a clean tree, and `rules/ending-a-session.md` says such a hook is not the person asking, adding 27 words to the governing prose and raising its budget to match because the rule is new.
 

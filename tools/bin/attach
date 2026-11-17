@@ -46,9 +46,22 @@ if [[ -z "${have}" ]]; then
 fi
 
 activate="${root}/.agent/tools/sandbox/activate.sh"
-[[ -f "${activate}" ]] && CLAUDE_PROJECT_DIR="${root}" bash "${activate}"
+differs=0
+kit="${root}/.agent/tools/sandbox"
+if [[ -e "${kit}" || -L "${kit}" ]]; then
+  template="$(mktemp -d 2>/dev/null)"
+  [[ -n "${template}" ]] && git -C "${root}" archive HEAD memory/_example/tools/sandbox 2>/dev/null | tar -x -C "${template}" 2>/dev/null
+  if [[ -z "${template}" ]] || ! diff -rq --no-dereference "${template}/memory/_example/tools/sandbox" "${kit}" >/dev/null 2>&1; then
+    differs=1
+    echo "attach: .agent/tools/sandbox is not the committed template's memory/_example/tools/sandbox (or the template is not committed here to compare), so its activate.sh was not run. From the repository root, restore the committed one and commit it on the agent's branch: rm -rf .agent/tools/sandbox && git archive HEAD memory/_example/tools/sandbox | tar -x --strip-components=3 -C .agent/tools" >&2
+  fi
+  [[ -n "${template}" ]] && rm -rf "${template}"
+fi
+[[ -f "${activate}" && ${differs} -eq 0 ]] && CLAUDE_PROJECT_DIR="${root}" bash "${activate}"
 declarable=1
-if stewie_sandboxed "${root}"; then
+if [[ ${differs} -eq 1 ]]; then
+  sandbox="this agent's sandbox kit is not the template's and was not run, so the agent cannot be declared; restore it as said above, or work as plain Claude Code"; declarable=0
+elif stewie_sandboxed "${root}"; then
   sandbox="the Bash sandbox is on"
 elif [[ -f "${root}/.claude/settings.local.json" ]] && grep -q '"sandbox":{"enabled":true' "${root}/.claude/settings.local.json"; then
   sandbox="the Bash sandbox turns on from the next command, and the agent can then be declared"

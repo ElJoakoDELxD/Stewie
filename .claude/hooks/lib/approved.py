@@ -200,7 +200,8 @@ def commit(c, cwd, moved, command, sub):
     if sub == "pull" and args == ["--ff-only"]:
         return None
     if moved or c["elsewhere"] or c.get("stdin") or any(UNREAD.search(d) for d in c["C"]) or MOVED_ENV.search(command):
-        return "a commit to a branch that cannot be read before it runs"
+        return ("a commit whose branch cannot be checked, since the call changes directory or reads stdin first "
+                "(expected: the same commit, run alone where it lands, passes without approval),")
     where = cwd
     for d in c["C"]:
         where = os.path.join(where, os.path.expanduser(d))

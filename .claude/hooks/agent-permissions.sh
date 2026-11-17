@@ -71,7 +71,7 @@ case "${tool}" in
   Write|Edit|MultiEdit|NotebookEdit)
     abs="$(resolve "${path}")"
     if [[ "${abs}" == "$(python3 -I -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${file}")" ]]; then
-      deny "agent '${STEWIE_AGENT}' may not change its own definition (${file#"${root}"/}). Changes to it arrive by pull request."
+      deny "agent '${STEWIE_AGENT}' may not change its own definition (${file#"${root}"/}). This is expected: a chat that has not declared '${STEWIE_AGENT}' makes the change, by pull request."
     fi
     within "${abs}" writes || deny "agent '${STEWIE_AGENT}' declares no effect that writes ${abs#"${root}"/} (${file#"${root}"/}, effects)."
     ;;

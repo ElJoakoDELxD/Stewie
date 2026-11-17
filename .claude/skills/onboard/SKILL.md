@@ -26,7 +26,7 @@ Then, with every git call alone:
 3. `cp -R memory/_example/. .agent/ && cp .claude/agents/_example.md .agent/agent.md`
 4. Fill `.agent/agent.md`: `name: <name>`, a one-line `description`, and the body from the answers. Keep the default effects. Fill the *Agent* and *The person's goal* sections of `.agent/memory/core.md` from the same answers, one statement per line, set today's date in `.agent/memory/references/delegations.md`, then run `memory index`.
 5. `attach <name>`, then do what its last line says.
-6. The autosave at the end of the turn commits and pushes `.agent/`; tell the person if it could not push.
+6. Save as `rules/ending-a-session.md` says.
 
 Nothing is written to `main`. Tell the person, in one or two lines, that every new chat starts with this agent, or offers a choice once there are several.
 
