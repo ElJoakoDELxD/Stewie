@@ -32,5 +32,5 @@
 | A fix would change the system, or the copy is behind the canon | `rules/changing-the-system.md` |
 | You run as the custodian | `.claude/agents/custodian.md` |
 | Tidying documents, the tree, or memory | the `5s` skill |
-| A task might come out as good, cheaper, delegated | the `orchestrate` skill |
+| A task might be done as well for less, or is harder than this session's model | the `orchestrate` skill |
 | A procedure or a reference fact | `knowledge/` |
