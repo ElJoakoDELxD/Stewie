@@ -4,7 +4,7 @@ description: Bring this copy's template to the canon's latest release, or land a
 ---
 # Update
 
-Only the custodian runs this skill: a chat attached to the `custodian` branch (`attach custodian`). An ordinary agent never edits `main`; it records the fix in its chat's memory, and the person brings it here.
+Only the custodian runs this skill: a chat attached to the `custodian` branch (`attach custodian`). An ordinary agent's fixes arrive as `rules/changing-the-system.md` says.
 
 A copy made with *Use this template* shares no git history with the canon, so an update applies the difference between two canon releases. It changes template paths only, on a new branch, and never touches an agent's branch.
 ## Take a release
@@ -15,14 +15,14 @@ Every git call alone.
 2. `git fetch --no-tags https://github.com/ElJoakoDELxD/Stewie "+refs/tags/*:refs/canon/*"`. Never pass `--depth`: the ancestry check below needs the whole line.
 3. `<latest>` is the newest release the canon has not withdrawn with a tag `withdrawn/v<x.y.z>`; a withdrawn release is never taken. Place the version before ordering it. No `refs/canon/v<this version>` means this copy's version is not a canon release: stop, and say that no direction can be claimed. If `git merge-base --is-ancestor refs/canon/v<this version> refs/canon/v<latest>` fails, the canon's line was rewritten: stop, and report it.
 4. Same version: say the copy is current, and stop. Otherwise, show the person the `CHANGELOG.md` entries in between: they say why.
-5. Resolve the pending proposals first (below).
-6. `git switch -c update-<latest> main`, then `git diff --binary refs/canon/v<this version> refs/canon/v<latest> --output=<tmp>/update.patch`, then pass `<tmp>/update.patch` through `malicious-code-review` (only `CLEAN` goes on), then `git apply --3way <tmp>/update.patch`. On a conflict, keep what a `pending/` record explains; otherwise take the canon's.
+5. Open an issue on this copy for the update, `git switch -c update-<latest> main`, and resolve the pending proposals (below).
+6. `git diff --binary refs/canon/v<this version> refs/canon/v<latest> --output=<tmp>/update.patch`, then pass `<tmp>/update.patch` through `malicious-code-review` (only `CLEAN` goes on), then `git apply --3way <tmp>/update.patch`. On a conflict, keep what a `pending/` record explains; otherwise take the canon's.
 7. If the memory format changed (the `format:` of `memory/_example/memory/core.md`, or of `MEMORY.md` in releases before it), say so; new `_schema.md` files reach an agent only this way. The release notes say how to migrate an agent's memory. That runs on the agent's own branch with the person's consent, never in this pull request.
-8. Commit, push the branch, and open a pull request to `main`, or give the person its compare link. Squash-merge it on the person's yes (`/principal-approves`).
+8. Commit, push the branch, and open a pull request to `main` or give its compare link. Squash-merge it on the person's yes (`/principal-approves`).
 
 ## Land a fix an agent recorded
 
-Start from an issue on this copy stating the change. On a new branch from `main`, make it, pass the diff through `malicious-code-review` (only `CLEAN` goes on), push the branch, and open a pull request; squash-merge it only on the person's yes (`/principal-approves`). If it would serve every copy, offer to propose it to the canon.
+Start from an issue on this copy stating the change. On a new branch from `main`, make it, pass the diff through `malicious-code-review` (only `CLEAN` goes on; review again anything changed after), push the branch, and open a pull request; squash-merge it only on the person's yes (`/principal-approves`). If it would serve every copy, offer to propose it to the canon.
 
 ## Propose a fix to the canon
 

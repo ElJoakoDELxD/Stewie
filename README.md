@@ -21,7 +21,7 @@ The chat asks you at most four things: your assistant's name, the language to us
 
 Open a new chat on your repository. With one assistant, the chat starts with it. With several, the chat asks which one; you can also ask it to create another. One chat works with one assistant from start to end.
 
-Every reply begins with a line in square brackets: the date and time, your assistant, where it is working, and the model that answered. A ✓ at the end means the date matches what your assistant was told and the time runs on from its previous reply; without the ✓, it will ask you which is right.
+Every reply begins with a line in square brackets: the date and time, your assistant, where it is working, and the model that answered, when known. A ✓ at the end means the date matches what your assistant was told and the time runs on from its previous reply; without the ✓, it will ask you which is right.
 
 Your assistant saves as it goes. At the end of a chat, say you are done, or ask for a *handoff*: your assistant writes down where things stand and what comes next, so the next chat can continue.
 
@@ -30,8 +30,8 @@ Your assistant's notes and work are on the branch `agent/<name>`: choose it in G
 ## Good to know
 
 - Each assistant lives on its own branch of your repository, apart from Stewie itself, so an update to Stewie's rules and tools reaches all of them at once, while each assistant keeps its own memory.
-- The assistant never spends money, signs anything, or promises anything in your name. It prepares drafts; you publish them, or say yes to each one it publishes for you.
-- Changes to Stewie itself, such as an update when the chat says your copy is behind, are made by its *custodian*, a role that updates Stewie and only with your yes. It runs only on models Stewie has evaluated, listed in `knowledge/models.md`. Start a new chat, ask for the custodian, and ask it to update. It prepares the change as a *pull request* (a proposed change you can read before it is applied) and merges it when you type `/principal-approves`.
+- The assistant never spends money, signs anything, or promises anything in your name. It prepares drafts; you publish them.
+- Changes to Stewie itself, such as an update when the chat says your copy is behind, are made by its *custodian*, a role that updates Stewie and only with your yes. It changes Stewie only on a model whose published evaluation Stewie has recorded (`knowledge/models.md`); on any other it only suggests. Start a new chat, ask for the custodian, and ask it to update. It prepares the change as a *pull request* (a proposed change you can read before it is applied) and merges it when you type `/principal-approves`.
 - On Claude Code on the web, your assistant switches on a safety lock that keeps most of its commands inside your repository: saving commands run outside it, and the lock links two helper programs into the system's program folder. On other computers that lock may not be available, and then a command can change files your assistant's permissions would otherwise protect.
 
 ## More
